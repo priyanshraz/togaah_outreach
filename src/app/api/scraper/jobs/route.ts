@@ -5,7 +5,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user) {
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
       where: { execution: { userId: session.user.id } },
       include: {
         execution: {
-          select: { status: true, createdAt: true, duration: true },
+          select: { status: true, createdAt: true, duration: true, outputData: true },
         },
       },
       orderBy: { createdAt: 'desc' },
