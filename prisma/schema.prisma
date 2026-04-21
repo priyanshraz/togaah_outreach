@@ -43,8 +43,8 @@ model WorkflowExecution {
   workflowName   String?
   status         String    @default("PENDING")
   n8nExecutionId String?
-  inputData      String    // stored as JSON string
-  outputData     String?   // stored as JSON string
+  inputData      String
+  outputData     String?
   errorMessage   String?
   startedAt      DateTime?
   completedAt    DateTime?
@@ -64,28 +64,28 @@ model WorkflowExecution {
 }
 
 model Campaign {
-  id                  String    @id @default(cuid())
-  executionId         String    @unique
-  campaignName        String
-  serviceType         String
-  targetRegion        String
-  campaignGoal        String    @default("")
-  campaignMessage     String    @default("")
-  selectedSheet       String
-  totalLeadsSent      Int       @default(0)
-  successfulSends     Int       @default(0)
-  failedSends         Int       @default(0)
-  aiGeneratedContent  String?   // JSON string
-  status              String    @default("PENDING_APPROVAL")
-  approvedBy          String?
-  approvedAt          DateTime?
-  rejectedBy          String?
-  rejectedAt          DateTime?
-  rejectionReason     String?
-  comments            String?
-  createdBy           String    @default("")
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  executionId        String    @unique
+  campaignName       String
+  serviceType        String
+  targetRegion       String
+  campaignGoal       String    @default("")
+  campaignMessage    String    @default("")
+  selectedSheet      String
+  totalLeadsSent     Int       @default(0)
+  successfulSends    Int       @default(0)
+  failedSends        Int       @default(0)
+  aiGeneratedContent String?
+  status             String    @default("PENDING_APPROVAL")
+  approvedBy         String?
+  approvedAt         DateTime?
+  rejectedBy         String?
+  rejectedAt         DateTime?
+  rejectionReason    String?
+  comments           String?
+  createdBy          String    @default("")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
 
