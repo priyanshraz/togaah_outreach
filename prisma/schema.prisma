@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  password      String
+  role          String    @default("CLIENT")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  executions WorkflowExecution[]
+  sessions   Session[]
+
+  @@index([email])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  sessionToken String   @unique
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model WorkflowExecution {
+  id             String    @id @default(cuid())
+  userId         String
+  workflowType   String
+  workflowName   String?
+  status         String    @default("PENDING")
+  n8nExecutionId String?
+  inputData      String    // stored as JSON string
+  outputData     String?   // stored as JSON string
+  errorMessage   String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  duration       Int?
+  createdAt      DateTime  @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign   Campaign?
+  scraperJob ScraperJob?
+  cleanupLog CleanupLog?
+
+  @@index([userId])
+  @@index([workflowType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("workflow_executions")
+}
+
+model Campaign {
+  id                  String    @id @default(cuid())
+  executionId         String    @unique
+  campaignName        String
+  serviceType         String
+  targetRegion        String
+  campaignGoal        String    @default("")
+  campaignMessage     String    @default("")
+  selectedSheet       String
+  totalLeadsSent      Int       @default(0)
+  successfulSends     Int       @default(0)
+  failedSends         Int       @default(0)
+  aiGeneratedContent  String?   // JSON string
+  status              String    @default("PENDING_APPROVAL")
+  approvedBy          String?
+  approvedAt          DateTime?
+  rejectedBy          String?
+  rejectedAt          DateTime?
+  rejectionReason     String?
+  comments            String?
+  createdBy           String    @default("")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([campaignName])
+  @@index([serviceType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("campaigns")
+}
+
+model ScraperJob {
+  id            String   @id @default(cuid())
+  executionId   String   @unique
+  niches        String
+  location      String
+  maxResults    Int
+  totalScraped  Int      @default(0)
+  validEmails   Int      @default(0)
+  invalidEmails Int      @default(0)
+  targetSheet   String
+  apifyRunId    String?
+  createdAt     DateTime @default(now())
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([location])
+  @@index([createdAt])
+  @@map("scraper_jobs")
+}
+
+model CleanupLog {
+  id            String   @id @default(cuid())
+  executionId   String   @unique
+  totalContacts Int
+  deletedCount  Int
+  triggerType   String
+  cleanupDate   DateTime @default(now())
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([cleanupDate])
+  @@map("cleanup_logs")
+}
