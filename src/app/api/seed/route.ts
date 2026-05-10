@@ -11,16 +11,22 @@ export async function GET() {
       where: { email: 'admin@togahh.com' },
     });
 
+    const hashedPassword = await bcrypt.hash('Togaa@123', 10);
+
     if (existingUser) {
+      // Update password if user already exists
+      await prisma.user.update({
+        where: { email: 'admin@togahh.com' },
+        data: { password: hashedPassword },
+      });
       return NextResponse.json({
-        message: 'Admin user already exists. No action taken.',
+        success: true,
+        message: 'Password updated successfully!',
         email: 'admin@togahh.com',
       });
     }
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash('pass@123', 10);
-
     const user = await prisma.user.create({
       data: {
         email: 'admin@togahh.com',
