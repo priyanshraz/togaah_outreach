@@ -41,7 +41,7 @@ export function CampaignForm() {
       campaign_goal: 'Book a free consultation',
       campaign_message: '',
       cta_button_text: 'Book Free Analysis',
-      cta_link: 'https://www.togahh.com/en/contact',
+      cta_link: 'https://www.toga.com/en/contact',
       tone: 'Warm and educational',
       selected_sheet: 'Hair Transplant Leads',
     },
@@ -270,7 +270,7 @@ export function CampaignForm() {
                 <FormItem>
                   <FormLabel>Button Link (optional)</FormLabel>
                   <FormControl>
-                    <Input placeholder="https://www.togahh.com/en/contact" {...field} />
+                    <Input placeholder="https://www.toga.com/en/contact" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

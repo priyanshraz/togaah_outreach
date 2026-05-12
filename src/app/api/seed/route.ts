@@ -30,7 +30,7 @@ export async function GET() {
     const user = await prisma.user.create({
       data: {
         email: 'admin@togahh.com',
-        name: 'Togahh Admin',
+        name: 'Toga Admin',
         password: hashedPassword,
         role: 'ADMIN',
       },

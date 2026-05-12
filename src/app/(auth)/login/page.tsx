@@ -57,13 +57,13 @@ export default function LoginPage() {
           <div className="relative mx-auto h-20 w-20">
             <Image
               src="https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg"
-              alt="Togahh Logo"
+              alt="Toga Logo"
               fill
               className="object-contain rounded-lg"
               unoptimized
             />
           </div>
-          <h1 className="text-4xl font-bold text-white">TOGAHH</h1>
+          <h1 className="text-4xl font-bold text-white">TOGA</h1>
           <p className="text-lg text-white/70">
             Medical Tourism Automation Platform
           </p>
@@ -90,13 +90,13 @@ export default function LoginPage() {
             <div className="relative h-14 w-14">
               <Image
                 src="https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg"
-                alt="Togahh Logo"
+                alt="Toga Logo"
                 fill
                 className="object-contain"
                 unoptimized
               />
             </div>
-            <h1 className="text-2xl font-bold text-[#1a1a2e]">TOGAHH</h1>
+            <h1 className="text-2xl font-bold text-[#1a1a2e]">TOGA</h1>
           </div>
 
           <div>
@@ -173,7 +173,7 @@ export default function LoginPage() {
           </Form>
 
           <p className="text-center text-xs text-gray-400">
-            Togahh Automation Dashboard v1.0 · Secure Access Only
+            Toga Automation Dashboard v1.0 · Secure Access Only
           </p>
         </div>
       </div>

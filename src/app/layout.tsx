@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Togahh Automation Dashboard',
+  title: 'Toga Automation Dashboard',
   description: 'Medical tourism outreach automation platform',
   icons: {
     icon: 'https://admin.togahh.com/img/setting/01KE7GTXG885XMXHF6QRE0MPJZ.svg',

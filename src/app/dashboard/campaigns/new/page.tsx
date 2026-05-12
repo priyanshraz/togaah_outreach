@@ -96,7 +96,7 @@ export default function NewCampaignPage() {
     resolver: zodResolver(campaignSchema),
     defaultValues: {
       cta_button_text: 'Book Free Consultation',
-      cta_link: 'https://www.togahh.com/en/contact',
+      cta_link: 'https://www.toga.com/en/contact',
     },
   });
 
@@ -118,7 +118,7 @@ export default function NewCampaignPage() {
         campaign_goal: data.campaign_goal ?? '',
         campaign_message: data.campaign_message ?? '',
         cta_button_text: data.cta_button_text ?? 'Book Free Consultation',
-        cta_link: data.cta_link ?? 'https://www.togahh.com/en/contact',
+        cta_link: data.cta_link ?? 'https://www.toga.com/en/contact',
         tone: data.tone ?? '',
         selected_sheet: data.selected_sheet ?? '',
       });
@@ -351,7 +351,7 @@ export default function NewCampaignPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Button Link (optional)</label>
                   <Input
                     {...form.register('cta_link')}
-                    placeholder="https://www.togahh.com/en/contact"
+                    placeholder="https://www.toga.com/en/contact"
                     disabled={isSubmitting}
                   />
                   {form.formState.errors.cta_link && (

@@ -37,13 +37,13 @@ export function Sidebar() {
           <div className="relative h-9 w-9 flex-shrink-0">
             <Image
               src="https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg"
-              alt="Togahh Logo"
+              alt="Toga Logo"
               fill
               className="object-contain rounded-lg"
               unoptimized
             />
           </div>
-          <span className="text-lg font-bold tracking-wide text-white">TOGAHH</span>
+          <span className="text-lg font-bold tracking-wide text-white">TOGA</span>
         </Link>
       </div>
 
