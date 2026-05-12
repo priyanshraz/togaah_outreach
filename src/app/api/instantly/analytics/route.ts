@@ -4,15 +4,18 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-const INSTANTLY_BASE = 'https://api.instantly.ai/api/v1';
+const INSTANTLY_BASE = 'https://api.instantly.ai/api/v2';
 
 async function instantlyFetch(endpoint: string) {
   const apiKey = process.env.INSTANTLY_API_KEY;
   if (!apiKey) throw new Error('INSTANTLY_API_KEY not configured');
 
-  const res = await fetch(`${INSTANTLY_BASE}${endpoint}&api_key=${apiKey}`, {
-    headers: { 'Content-Type': 'application/json' },
-    next: { revalidate: 0 },
+  const res = await fetch(`${INSTANTLY_BASE}${endpoint}`, {
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    cache: 'no-store',
   });
 
   if (!res.ok) {
@@ -29,82 +32,60 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch all campaigns
-    const campaignsData = await instantlyFetch('/campaign/list?limit=100&skip=0');
-    const campaigns = campaignsData?.campaigns ?? campaignsData ?? [];
+    // Single call — returns ALL campaigns with analytics
+    const data = await instantlyFetch('/campaigns/analytics');
+    const campaigns: {
+      campaign_name: string;
+      campaign_id: string;
+      campaign_status: number;
+      leads_count: number;
+      contacted_count: number;
+      emails_sent_count: number;
+      new_leads_contacted_count: number;
+      open_count: number;
+      open_count_unique: number;
+      reply_count: number;
+      reply_count_unique: number;
+      link_click_count: number;
+      bounced_count: number;
+      unsubscribed_count: number;
+      completed_count: number;
+      total_opportunities: number;
+      total_opportunity_value: number;
+    }[] = Array.isArray(data) ? data : [];
 
-    // Fetch analytics for each campaign
-    const analyticsPromises = campaigns.map(async (campaign: { id: string; name: string; status: number }) => {
-      try {
-        const analytics = await instantlyFetch(
-          `/analytics/campaign/summary?campaign_id=${campaign.id}&`
-        );
-        return {
-          id: campaign.id,
-          name: campaign.name,
-          status: campaign.status,
-          leads_count: analytics?.leads_count ?? 0,
-          contacted_count: analytics?.contacted_count ?? 0,
-          emails_sent_count: analytics?.emails_sent_count ?? 0,
-          open_count: analytics?.open_count ?? 0,
-          reply_count: analytics?.reply_count ?? 0,
-          bounced_count: analytics?.bounced_count ?? 0,
-          unsubscribed_count: analytics?.unsubscribed_count ?? 0,
-          completed_count: analytics?.completed_count ?? 0,
-          new_leads_contacted: analytics?.new_leads_contacted ?? 0,
-          total_opportunities: analytics?.total_opportunities ?? 0,
-        };
-      } catch {
-        return {
-          id: campaign.id,
-          name: campaign.name,
-          status: campaign.status,
-          leads_count: 0,
-          contacted_count: 0,
-          emails_sent_count: 0,
-          open_count: 0,
-          reply_count: 0,
-          bounced_count: 0,
-          unsubscribed_count: 0,
-          completed_count: 0,
-          new_leads_contacted: 0,
-          total_opportunities: 0,
-        };
-      }
-    });
-
-    const campaignAnalytics = await Promise.all(analyticsPromises);
-
-    // Calculate totals
-    const totals = campaignAnalytics.reduce(
+    // Calculate totals across all campaigns
+    const totals = campaigns.reduce(
       (acc, c) => ({
-        total_leads: acc.total_leads + c.leads_count,
-        total_sent: acc.total_sent + c.emails_sent_count,
-        total_opened: acc.total_opened + c.open_count,
-        total_replied: acc.total_replied + c.reply_count,
-        total_bounced: acc.total_bounced + c.bounced_count,
-        total_unsubscribed: acc.total_unsubscribed + c.unsubscribed_count,
+        total_leads:         acc.total_leads + (c.leads_count ?? 0),
+        total_contacted:     acc.total_contacted + (c.contacted_count ?? 0),
+        total_sent:          acc.total_sent + (c.emails_sent_count ?? 0),
+        total_opened:        acc.total_opened + (c.open_count ?? 0),
+        total_replied:       acc.total_replied + (c.reply_count ?? 0),
+        total_bounced:       acc.total_bounced + (c.bounced_count ?? 0),
+        total_unsubscribed:  acc.total_unsubscribed + (c.unsubscribed_count ?? 0),
+        total_completed:     acc.total_completed + (c.completed_count ?? 0),
+        total_opportunities: acc.total_opportunities + (c.total_opportunities ?? 0),
       }),
       {
         total_leads: 0,
+        total_contacted: 0,
         total_sent: 0,
         total_opened: 0,
         total_replied: 0,
         total_bounced: 0,
         total_unsubscribed: 0,
+        total_completed: 0,
+        total_opportunities: 0,
       }
     );
 
-    return NextResponse.json({
-      success: true,
-      totals,
-      campaigns: campaignAnalytics,
-    });
+    return NextResponse.json({ success: true, totals, campaigns });
 
   } catch (error) {
     console.error('Instantly analytics error:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch Instantly analytics' },
+      { error: error instanceof Error ? error.message : 'Failed to fetch analytics' },
       { status: 500 }
     );
   }
