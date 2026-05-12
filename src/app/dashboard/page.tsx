@@ -6,43 +6,55 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { RecentExecutions, type ExecutionItem } from '@/components/dashboard/recent-executions';
 import { Mail, Search, Trash2, TrendingUp } from 'lucide-react';
 
+const defaultStats = {
+  totalCampaigns: 0,
+  totalLeadsScraped: 0,
+  validLeads: 0,
+  totalCleanups: 0,
+  totalDeleted: 0,
+  successRate: 0,
+  recentExecutions: [] as Array<{ id: string; workflowType: string; workflowName: string | null; status: string; createdAt: Date; campaign: { id: string } | null }>,
+};
+
 async function getDashboardStats(userId: string) {
-  const [campaigns, scraperJobs, cleanupLogs, recentExecutions] = await Promise.all([
-    prisma.campaign.count({ where: { execution: { userId } } }),
-    prisma.scraperJob.aggregate({
-      where: { execution: { userId } },
-      _sum: { totalScraped: true, validEmails: true },
-    }),
-    prisma.cleanupLog.aggregate({
-      where: { execution: { userId } },
-      _sum: { deletedCount: true },
-      _count: true,
-    }),
-    // Include campaign relation so we can get campaignId for delete/reuse
-    prisma.workflowExecution.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 8,
-      include: {
-        campaign: { select: { id: true } },
-      },
-    }),
-  ]);
+  try {
+    const [campaigns, scraperJobs, cleanupLogs, recentExecutions] = await Promise.all([
+      prisma.campaign.count({ where: { execution: { userId } } }),
+      prisma.scraperJob.aggregate({
+        where: { execution: { userId } },
+        _sum: { totalScraped: true, validEmails: true },
+      }),
+      prisma.cleanupLog.aggregate({
+        where: { execution: { userId } },
+        _sum: { deletedCount: true },
+        _count: true,
+      }),
+      prisma.workflowExecution.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 8,
+        include: { campaign: { select: { id: true } } },
+      }),
+    ]);
 
-  const successCount = await prisma.workflowExecution.count({
-    where: { userId, status: 'SUCCESS' },
-  });
-  const totalCount = await prisma.workflowExecution.count({ where: { userId } });
+    const [successCount, totalCount] = await Promise.all([
+      prisma.workflowExecution.count({ where: { userId, status: 'SUCCESS' } }),
+      prisma.workflowExecution.count({ where: { userId } }),
+    ]);
 
-  return {
-    totalCampaigns: campaigns,
-    totalLeadsScraped: scraperJobs._sum.totalScraped ?? 0,
-    validLeads: scraperJobs._sum.validEmails ?? 0,
-    totalCleanups: cleanupLogs._count ?? 0,
-    totalDeleted: cleanupLogs._sum.deletedCount ?? 0,
-    successRate: totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 0,
-    recentExecutions,
-  };
+    return {
+      totalCampaigns: campaigns,
+      totalLeadsScraped: scraperJobs._sum.totalScraped ?? 0,
+      validLeads: scraperJobs._sum.validEmails ?? 0,
+      totalCleanups: cleanupLogs._count ?? 0,
+      totalDeleted: cleanupLogs._sum.deletedCount ?? 0,
+      successRate: totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 0,
+      recentExecutions,
+    };
+  } catch (error) {
+    console.error('getDashboardStats error:', error);
+    return defaultStats;
+  }
 }
 
 export default async function DashboardPage() {
