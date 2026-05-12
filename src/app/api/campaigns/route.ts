@@ -92,39 +92,62 @@ export async function POST(req: NextRequest) {
 
     const duration = Date.now() - startTime;
 
+    // Log n8n response for debugging
+    console.log('n8n response status:', n8nData.status);
+    console.log('n8n execution_id:', n8nData.execution_id);
+    console.log('n8n has preview:', !!n8nData.campaign_preview);
+
     // Persist execution record
-    const execution = await prisma.workflowExecution.create({
-      data: {
-        userId: session.user.id,
-        workflowType: 'CAMPAIGN',
-        workflowName: body.campaign_name,
-        status: 'SUCCESS',
-        n8nExecutionId: n8nData.execution_id || null,
-        inputData: JSON.stringify(body),
-        outputData: JSON.stringify(n8nData),
-        startedAt: new Date(startTime),
-        completedAt: new Date(),
-        duration,
-      },
-    });
+    let execution;
+    try {
+      execution = await prisma.workflowExecution.create({
+        data: {
+          userId: session.user.id,
+          workflowType: 'CAMPAIGN',
+          workflowName: body.campaign_name,
+          status: 'SUCCESS',
+          n8nExecutionId: n8nData.execution_id || null,
+          inputData: JSON.stringify(body),
+          outputData: JSON.stringify(n8nData),
+          startedAt: new Date(startTime),
+          completedAt: new Date(),
+          duration,
+        },
+      });
+    } catch (dbErr) {
+      console.error('DB error creating workflowExecution:', dbErr);
+      return NextResponse.json(
+        { error: 'Database error saving execution record', details: String(dbErr) },
+        { status: 500 }
+      );
+    }
 
     // Persist campaign record with full AI preview + sheet info
-    const campaign = await prisma.campaign.create({
-      data: {
-        executionId: execution.id,
-        campaignName: body.campaign_name,
-        serviceType: body.service_type,
-        targetRegion: body.target_region,
-        campaignGoal: body.campaign_goal,
-        campaignMessage: body.campaign_message,
-        selectedSheet: body.selected_sheet,
-        aiGeneratedContent: n8nData.campaign_preview
-          ? JSON.stringify(n8nData.campaign_preview)
-          : null,
-        status: 'PENDING_APPROVAL',
-        createdBy: session.user.id,
-      },
-    });
+    let campaign;
+    try {
+      campaign = await prisma.campaign.create({
+        data: {
+          executionId: execution.id,
+          campaignName: body.campaign_name,
+          serviceType: body.service_type,
+          targetRegion: body.target_region,
+          campaignGoal: body.campaign_goal,
+          campaignMessage: body.campaign_message,
+          selectedSheet: body.selected_sheet,
+          aiGeneratedContent: n8nData.campaign_preview
+            ? JSON.stringify(n8nData.campaign_preview)
+            : null,
+          status: 'PENDING_APPROVAL',
+          createdBy: session.user.id,
+        },
+      });
+    } catch (dbErr) {
+      console.error('DB error creating campaign:', dbErr);
+      return NextResponse.json(
+        { error: 'Database error saving campaign record', details: String(dbErr) },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
