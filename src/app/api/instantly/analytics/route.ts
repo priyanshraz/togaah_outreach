@@ -33,7 +33,15 @@ export async function GET() {
     }
 
     // Single call — returns ALL campaigns with analytics
-    const data = await instantlyFetch('/campaigns/analytics');
+    const raw = await instantlyFetch('/campaigns/analytics');
+
+    // Handle both direct array and wrapped response
+    const data = Array.isArray(raw) ? raw
+      : Array.isArray(raw?.items) ? raw.items
+      : Array.isArray(raw?.data)  ? raw.data
+      : [];
+
+    // Normalize fields — Instantly may return name or campaign_name
     const campaigns: {
       campaign_name: string;
       campaign_id: string;
@@ -52,7 +60,26 @@ export async function GET() {
       completed_count: number;
       total_opportunities: number;
       total_opportunity_value: number;
-    }[] = Array.isArray(data) ? data : [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }[] = data.map((c: any) => ({
+      campaign_name:             c.campaign_name || c.name || 'Unnamed Campaign',
+      campaign_id:               c.campaign_id   || c.id   || '',
+      campaign_status:           Number(c.campaign_status ?? c.status ?? 0),
+      leads_count:               c.leads_count              ?? 0,
+      contacted_count:           c.contacted_count          ?? 0,
+      emails_sent_count:         c.emails_sent_count        ?? 0,
+      new_leads_contacted_count: c.new_leads_contacted_count ?? 0,
+      open_count:                c.open_count               ?? 0,
+      open_count_unique:         c.open_count_unique        ?? 0,
+      reply_count:               c.reply_count              ?? 0,
+      reply_count_unique:        c.reply_count_unique       ?? 0,
+      link_click_count:          c.link_click_count         ?? 0,
+      bounced_count:             c.bounced_count            ?? 0,
+      unsubscribed_count:        c.unsubscribed_count       ?? 0,
+      completed_count:           c.completed_count          ?? 0,
+      total_opportunities:       c.total_opportunities      ?? 0,
+      total_opportunity_value:   c.total_opportunity_value  ?? 0,
+    }));
 
     // Calculate totals across all campaigns
     const totals = campaigns.reduce(

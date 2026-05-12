@@ -63,15 +63,12 @@ function pct(num: number, den: number): string {
 }
 
 function StatusBadge({ status }: { status: number }) {
-  const map: Record<number, { label: string; variant: 'success' | 'warning' | 'secondary' | 'destructive' }> = {
-    1:  { label: 'Active',    variant: 'success' },
-    2:  { label: 'Paused',    variant: 'warning' },
-    3:  { label: 'Completed', variant: 'secondary' },
-    0:  { label: 'Draft',     variant: 'secondary' },
-    '-1': { label: 'Inactive', variant: 'secondary' },
-  };
-  const cfg = map[status] ?? { label: `Status ${status}`, variant: 'secondary' as const };
-  return <Badge variant={cfg.variant}>{cfg.label}</Badge>;
+  if (status === 1)  return <Badge variant="success">Active</Badge>;
+  if (status === 2)  return <Badge variant="warning">Paused</Badge>;
+  if (status === 3)  return <Badge variant="secondary">Completed</Badge>;
+  if (status === 0)  return <Badge variant="secondary">Draft</Badge>;
+  if (status === -1) return <Badge variant="secondary">Inactive</Badge>;
+  return <Badge variant="secondary">Status {status}</Badge>;
 }
 
 function StatCard({
