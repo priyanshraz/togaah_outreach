@@ -56,10 +56,10 @@ export default function LoginPage() {
         <div className="max-w-md text-center space-y-6">
           <div className="relative mx-auto h-20 w-20">
             <Image
-              src="https://admin.togahh.com/img/setting/01KE7GTXG885XMXHF6QRE0MPJZ.svg"
+              src="https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg"
               alt="Togahh Logo"
               fill
-              className="object-contain brightness-0 invert"
+              className="object-contain rounded-lg"
               unoptimized
             />
           </div>
@@ -89,7 +89,7 @@ export default function LoginPage() {
           <div className="flex flex-col items-center gap-3 lg:hidden">
             <div className="relative h-14 w-14">
               <Image
-                src="https://admin.togahh.com/img/setting/01KE7GTXG885XMXHF6QRE0MPJZ.svg"
+                src="https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg"
                 alt="Togahh Logo"
                 fill
                 className="object-contain"

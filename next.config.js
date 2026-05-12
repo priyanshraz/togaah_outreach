@@ -6,6 +6,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'admin.togahh.com',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
     ],
   },
 };
