@@ -14,8 +14,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface ResetResult {
   display_name: string;
   rows_reset: number;
@@ -24,8 +22,6 @@ interface ResetResult {
 }
 
 type PageState = 'idle' | 'confirming' | 'loading' | 'success' | 'error';
-
-// ─── Table options ─────────────────────────────────────────────────────────────
 
 const TABLES = [
   { value: 'all_service_leads',      label: 'All Services Leads' },
@@ -36,15 +32,11 @@ const TABLES = [
   { value: 'ivf_fertility_leads',    label: 'IVF Fertility Leads' },
 ];
 
-// ─── History item ──────────────────────────────────────────────────────────────
-
 interface HistoryItem {
   display_name: string;
   rows_reset: number;
   timestamp: string;
 }
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function ResetLeadStatusPage() {
   const { toast } = useToast();
@@ -56,13 +48,11 @@ export default function ResetLeadStatusPage() {
 
   const selectedLabel = TABLES.find((t) => t.value === selectedTable)?.label ?? '';
 
-  // Step 1: Click reset → show confirm dialog
   function handleResetClick() {
     if (!selectedTable) return;
     setPageState('confirming');
   }
 
-  // Step 2: Confirm → call API
   async function handleConfirm() {
     setPageState('loading');
     setResult(null);
@@ -76,18 +66,15 @@ export default function ResetLeadStatusPage() {
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Reset failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Reset failed');
 
       setResult(data);
       setPageState('success');
       setHistory((prev) => [
         { display_name: data.display_name, rows_reset: data.rows_reset, timestamp: data.timestamp },
-        ...prev.slice(0, 9), // keep last 10
+        ...prev.slice(0, 9),
       ]);
-      setSelectedTable(''); // reset dropdown
+      setSelectedTable('');
       toast({ title: '✅ Reset successful!', description: `${data.rows_reset} leads are now available again` });
 
     } catch (err) {
@@ -97,27 +84,17 @@ export default function ResetLeadStatusPage() {
     }
   }
 
-  function handleCancel() {
-    setPageState('idle');
-  }
-
-  function handleReset() {
-    setPageState('idle');
-    setResult(null);
-    setErrorMsg('');
-  }
+  function handleCancel() { setPageState('idle'); }
+  function handleReset() { setPageState('idle'); setResult(null); setErrorMsg(''); }
 
   return (
     <div>
       <Header
         title="Reset Lead Status"
-        description="Kisi bhi table ke sent leads ka status clear karo taaki wo dobara campaigns ke liye available ho jayein"
-
+        description="Clear the sent status of leads in any table so they become available for new campaigns"
       />
 
       <div className="p-6 space-y-6 max-w-2xl mx-auto">
-
-        {/* ── Main Card ── */}
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
@@ -125,7 +102,7 @@ export default function ResetLeadStatusPage() {
               Lead Status Reset
             </CardTitle>
             <CardDescription>
-              Table select karo aur confirm karo — us table ke saare sent leads phir se available ho jayenge
+              Select a table and confirm — all sent leads in that table will be available for campaigns again
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
@@ -141,25 +118,23 @@ export default function ResetLeadStatusPage() {
                 disabled={pageState === 'loading'}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Kaunsi table reset karni hai?" />
+                  <SelectValue placeholder="Select a table to reset..." />
                 </SelectTrigger>
                 <SelectContent>
                   {TABLES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
+                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Warning box — shown when table selected */}
+            {/* Warning box */}
             {selectedTable && pageState === 'idle' && (
               <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                 <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-amber-800">
-                  Ye action <strong>{selectedLabel}</strong> ke saare sent leads ka status empty kar dega.
-                  Ye leads phir se campaigns ke liye available ho jayenge.
+                  This action will clear the sent status of all leads in <strong>{selectedLabel}</strong>.
+                  These leads will become available for new campaigns again.
                 </p>
               </div>
             )}
@@ -170,10 +145,10 @@ export default function ResetLeadStatusPage() {
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="font-semibold text-red-800">Kya aap sure hain?</p>
+                    <p className="font-semibold text-red-800">Are you sure?</p>
                     <p className="text-sm text-red-700 mt-0.5">
-                      <strong>{selectedLabel}</strong> ke saare sent leads ka status reset ho jayega.
-                      Ye action <strong>undo nahi ho sakta.</strong>
+                      The sent status of all leads in <strong>{selectedLabel}</strong> will be reset.
+                      This action <strong>cannot be undone.</strong>
                     </p>
                   </div>
                 </div>
@@ -185,7 +160,7 @@ export default function ResetLeadStatusPage() {
                     className="flex-1 bg-red-600 hover:bg-red-700 text-white"
                     onClick={handleConfirm}
                   >
-                    Haan, Reset Karo
+                    Yes, Reset Now
                   </Button>
                 </div>
               </div>
@@ -196,7 +171,7 @@ export default function ResetLeadStatusPage() {
               <div className="flex flex-col items-center justify-center py-8 space-y-3 text-center">
                 <Loader2 className="h-10 w-10 animate-spin text-[#0077b6]" />
                 <p className="font-medium text-gray-700">Resetting... Please wait</p>
-                <p className="text-sm text-gray-400">{selectedLabel} ke leads reset ho rahe hain</p>
+                <p className="text-sm text-gray-400">Clearing sent status for {selectedLabel}</p>
               </div>
             )}
 
@@ -213,7 +188,7 @@ export default function ResetLeadStatusPage() {
                   <p><strong>Time:</strong> {format(new Date(result.timestamp), 'MMM dd, yyyy HH:mm:ss')}</p>
                 </div>
                 <p className="text-xs text-green-600">
-                  Ab ye leads nayi campaigns ke liye available hain.
+                  These leads are now available for new campaigns.
                 </p>
                 <Button
                   variant="outline"
@@ -221,7 +196,7 @@ export default function ResetLeadStatusPage() {
                   onClick={handleReset}
                 >
                   <RotateCcw className="mr-2 h-4 w-4" />
-                  Doosri Table Reset Karo
+                  Reset Another Table
                 </Button>
               </div>
             )}
@@ -240,7 +215,7 @@ export default function ResetLeadStatusPage() {
               </div>
             )}
 
-            {/* Reset Button — only in idle state */}
+            {/* Reset Button */}
             {pageState === 'idle' && (
               <Button
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white"
@@ -255,7 +230,7 @@ export default function ResetLeadStatusPage() {
           </CardContent>
         </Card>
 
-        {/* ── Recent History ── */}
+        {/* Recent History */}
         {history.length > 0 && (
           <Card>
             <CardHeader>
@@ -269,9 +244,7 @@ export default function ResetLeadStatusPage() {
                 <div key={i} className="flex items-center justify-between rounded-lg bg-gray-50 border px-4 py-2.5 text-sm">
                   <div>
                     <p className="font-medium text-gray-800">{item.display_name}</p>
-                    <p className="text-xs text-gray-500">
-                      {format(new Date(item.timestamp), 'MMM dd, HH:mm')}
-                    </p>
+                    <p className="text-xs text-gray-500">{format(new Date(item.timestamp), 'MMM dd, HH:mm')}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-green-600">{item.rows_reset.toLocaleString()}</p>
@@ -282,7 +255,6 @@ export default function ResetLeadStatusPage() {
             </CardContent>
           </Card>
         )}
-
       </div>
     </div>
   );
