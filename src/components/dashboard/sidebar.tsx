@@ -14,6 +14,7 @@ import {
   LogOut,
   History,
   TrendingUp,
+  RefreshCw,
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/dashboard/outreach', label: 'Outreach Analytics', icon: TrendingUp },
   { href: '/dashboard/scraper', label: 'Lead Scraper', icon: Search },
   { href: '/dashboard/scraper/history', label: 'Scraper History', icon: History },
+  { href: '/dashboard/leads/reset', label: 'Reset Lead Status', icon: RefreshCw },
   { href: '/dashboard/cleanup', label: 'Cleanup', icon: Trash2 },
   { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
 ];
