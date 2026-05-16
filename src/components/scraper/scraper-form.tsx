@@ -154,7 +154,7 @@ export function ScraperForm() {
                       <SelectItem value="All Services Leads">All Services Leads</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Which Google Sheet to save leads into</FormDescription>
+                  <FormDescription>Which Table to save leads into</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

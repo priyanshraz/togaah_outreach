@@ -93,7 +93,7 @@ function StatusBadge({ status }: { status: string }) {
 
 const APPROVAL_STEPS = [
   { at: 0,  text: 'Sending approval to n8n...' },
-  { at: 5,  text: 'Reading subscriber list from Google Sheets...' },
+  { at: 5,  text: 'Reading subscriber list from Table...' },
   { at: 12, text: 'Personalising emails for each recipient...' },
   { at: 25, text: 'Sending via Instantly.ai...' },
   { at: 45, text: 'Updating campaign records...' },

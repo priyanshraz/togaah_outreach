@@ -154,7 +154,7 @@ export function CampaignForm() {
               name="selected_sheet"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Lead Sheet (Google Sheets)</FormLabel>
+                  <FormLabel>Lead Sheet (Table)</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
@@ -170,7 +170,7 @@ export function CampaignForm() {
                       <SelectItem value="All Services Leads">All Services Leads</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>Which Google Sheet to pull leads from</FormDescription>
+                  <FormDescription>Which Table to pull leads from</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

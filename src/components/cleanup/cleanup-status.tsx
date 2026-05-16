@@ -109,7 +109,7 @@ export function CleanupStatus() {
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
             <p className="text-xs text-amber-800">
-              This will delete contacts older than 10 days from Instantly.ai and update Google Sheets.
+              This will delete contacts older than 10 days from Instantly.ai and update Table.
             </p>
           </div>
           <Button

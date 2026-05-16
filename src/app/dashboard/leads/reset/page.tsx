@@ -112,6 +112,7 @@ export default function ResetLeadStatusPage() {
       <Header
         title="Reset Lead Status"
         description="Kisi bhi table ke sent leads ka status clear karo taaki wo dobara campaigns ke liye available ho jayein"
+
       />
 
       <div className="p-6 space-y-6 max-w-2xl mx-auto">

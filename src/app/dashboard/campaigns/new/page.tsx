@@ -34,7 +34,7 @@ type CampaignFormData = z.infer<typeof campaignSchema>;
 const LOADING_STEPS = [
   { at: 0,   text: 'Sending campaign brief to n8n...' },
   { at: 5,   text: 'Validating campaign data...' },
-  { at: 12,  text: 'Reading leads from Google Sheets...' },
+  { at: 12,  text: 'Reading leads from Table...' },
   { at: 25,  text: 'AI is crafting your email content...' },
   { at: 55,  text: 'Finalising subject line and preview text...' },
   { at: 90,  text: 'Almost done — saving campaign...' },
@@ -258,7 +258,7 @@ export default function NewCampaignPage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Lead Sheet</label>
                   <Select onValueChange={(v) => form.setValue('selected_sheet', v)} disabled={isSubmitting}>
-                    <SelectTrigger><SelectValue placeholder="Select Google Sheet tab" /></SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select Table tab" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Hair Transplant Leads">Hair Transplant Leads</SelectItem>
                       <SelectItem value="Dental Treatment Leads">Dental Treatment Leads</SelectItem>

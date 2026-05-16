@@ -50,7 +50,7 @@ const LOADING_STEPS = [
   { at: 20,  text: 'Scraping Google Maps for businesses...' },
   { at: 60,  text: 'Extracting business contact details...' },
   { at: 120, text: 'Validating email addresses...' },
-  { at: 180, text: 'Saving verified leads to Google Sheets...' },
+  { at: 180, text: 'Saving verified leads to Table...' },
   { at: 240, text: 'Finalising and updating records...' },
   { at: 290, text: 'Almost done — wrapping up...' },
 ];
@@ -248,7 +248,7 @@ export default function ScraperPage() {
                   </label>
                   <Select onValueChange={setTargetSheet} disabled={pageState === 'loading'}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select Google Sheet tab" />
+                      <SelectValue placeholder="Select Table tab" />
                     </SelectTrigger>
                     <SelectContent>
                       {SHEETS.map((s) => (
@@ -263,7 +263,7 @@ export default function ScraperPage() {
 
             {/* Info box */}
             <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 space-y-1">
-              <p className="font-semibold">What gets saved to Google Sheets:</p>
+              <p className="font-semibold">What gets saved to Table:</p>
               <p className="text-xs text-blue-700">
                 first_name · last_name · mobile_number · personal_email · linkedin · city · country · email_status
               </p>
@@ -358,7 +358,7 @@ export default function ScraperPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2 text-green-700">
                   <Users className="h-4 w-4" />
-                  Leads Saved to Google Sheets
+                  Leads Saved to Table
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -377,7 +377,7 @@ export default function ScraperPage() {
                   >
                     <a href={sheetInfo.sheet_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      Open Google Sheet
+                      Open Table
                     </a>
                   </Button>
                 )}
