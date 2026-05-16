@@ -190,7 +190,7 @@ export default function CampaignsPage() {
       if (!res.ok) throw new Error('Rejection failed');
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       closeDialog();
-      toast({ title: 'Campaign rejected' });
+      toast({ title: 'Email rejected' });
     } catch (err) {
       toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed', variant: 'destructive' });
       setDialogState('preview');
@@ -206,7 +206,7 @@ export default function CampaignsPage() {
       });
       if (!res.ok) throw new Error('Failed');
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast({ title: 'Campaign rejected' });
+      toast({ title: 'Email rejected' });
     } catch {
       toast({ title: 'Error', description: 'Could not reject campaign', variant: 'destructive' });
     }
@@ -260,14 +260,14 @@ export default function CampaignsPage() {
 
   return (
     <div>
-      <Header title="Campaigns" description="AI-generated email campaigns with in-dashboard approval" />
+      <Header title="Email Messages" description="Manage AI-generated email messages with in-dashboard approval" />
 
       <div className="p-6 space-y-8">
-        {/* New Campaign */}
+        {/* New Email Message */}
         <div className="flex justify-end">
           <Button asChild className="bg-[#0077b6] hover:bg-[#005f8f] text-white">
             <Link href="/dashboard/campaigns/new">
-              <Plus className="mr-2 h-4 w-4" /> New Campaign
+              <Plus className="mr-2 h-4 w-4" /> New Email Message
             </Link>
           </Button>
         </div>
@@ -363,10 +363,10 @@ export default function CampaignsPage() {
           </section>
         )}
 
-        {/* Campaign History */}
+        {/* Email History */}
         {!isLoading && (
           <section className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">Campaign History</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Email History</h2>
 
             {campaigns.length === 0 && (
               <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-gray-400">
@@ -452,7 +452,7 @@ export default function CampaignsPage() {
               <div className="px-6 pt-6 pb-4 border-b flex-shrink-0">
                 <DialogHeader>
                   <DialogTitle className="text-lg leading-snug">
-                    Review Campaign
+                    Review Email
                     <span className="block text-sm font-normal text-gray-500 mt-0.5">
                       {selectedCampaign.campaignName}
                     </span>
@@ -592,7 +592,7 @@ export default function CampaignsPage() {
               </div>
 
               <div>
-                <h3 className="text-xl font-bold text-gray-900">Campaign Approved!</h3>
+                <h3 className="text-xl font-bold text-gray-900">Email Approved!</h3>
                 <p className="text-sm text-gray-500 mt-1">Emails have been sent via Instantly.ai</p>
               </div>
 

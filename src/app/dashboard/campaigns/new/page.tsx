@@ -57,7 +57,7 @@ function LoadingOverlay({ elapsed }: { elapsed: number }) {
         </div>
 
         <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-gray-900">Generating AI Campaign</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Generating AI Email</h3>
           <p className="text-sm text-[#0077b6] font-medium min-h-[20px] transition-all">
             {step.text}
           </p>
@@ -150,7 +150,7 @@ export default function NewCampaignPage() {
       }
 
       toast({
-        title: '✅ Campaign created successfully!',
+        title: '✅ Email created successfully!',
         description: 'AI content generated. Review and approve it to send emails.',
       });
 
@@ -159,7 +159,7 @@ export default function NewCampaignPage() {
     } catch (error: unknown) {
       setIsSubmitting(false);
       toast({
-        title: 'Campaign creation failed',
+        title: 'Email creation failed',
         description: error instanceof Error ? error.message : 'Something went wrong. Please try again.',
         variant: 'destructive',
       });
@@ -173,7 +173,7 @@ export default function NewCampaignPage() {
 
       <div>
         <Header
-          title={isReuse ? 'Reuse Campaign' : 'New Campaign'}
+          title={isReuse ? 'Reuse Email' : 'New Email Message'}
           description={isReuse ? 'Pre-filled from previous campaign — edit and create new' : 'AI generates the email content — you review and approve before sending'}
         />
 
@@ -181,7 +181,7 @@ export default function NewCampaignPage() {
           <div className="mb-6">
             <Button variant="ghost" onClick={() => router.back()} className="text-gray-600">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Campaigns
+              Back to Email Messages
             </Button>
           </div>
 
@@ -198,15 +198,15 @@ export default function NewCampaignPage() {
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-            {/* Campaign Details */}
+            {/* Email Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Campaign Details</CardTitle>
+                <CardTitle className="text-base">Email Details</CardTitle>
                 <CardDescription>Basic information about this campaign</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Name</label>
                   <Input
                     {...form.register('campaign_name')}
                     placeholder="e.g. April Hair Transplant Awareness"
@@ -283,7 +283,7 @@ export default function NewCampaignPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Goal</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Goal</label>
                   <Select onValueChange={(v) => form.setValue('campaign_goal', v)} disabled={isSubmitting}>
                     <SelectTrigger><SelectValue placeholder="What's the goal?" /></SelectTrigger>
                     <SelectContent>
@@ -300,7 +300,7 @@ export default function NewCampaignPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Campaign Message</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Email Message</label>
                   <Textarea
                     {...form.register('campaign_message')}
                     placeholder="Describe what you want to communicate. The AI will write the full email from this brief..."
