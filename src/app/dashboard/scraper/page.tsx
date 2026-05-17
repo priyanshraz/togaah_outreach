@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Search, Loader2, CheckCircle, ExternalLink, History,
-  Users, Mail, XCircle, HelpCircle, Clock, BarChart3,
+  Search, Loader2, CheckCircle, History,
+  Users, Clock, XCircle,
 } from 'lucide-react';
 import { Header } from '@/components/dashboard/header';
 import { Button } from '@/components/ui/button';
@@ -16,46 +16,35 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface ScraperSummary {
-  niches: string;
-  location: string;
-  total_scraped: number;
-  verified_leads: number;
-  invalid_leads: number;
-  unknown_leads: number;
-  success_rate: string;
-}
-
-interface SheetInfo {
-  sheet_tab: string;
-  sheet_url: string;
-  leads_added: number;
-}
-
 interface ScraperResult {
-  summary: ScraperSummary;
-  sheetInfo: SheetInfo;
-  executionTime?: number;
+  total_scraped: number;
+  total_saved: number;
+  table_name: string;
+  execution_time: number;
+  save_status: string;
+}
+
+interface ApiResult {
+  result: ScraperResult;
+  executionId?: string;
 }
 
 type PageState = 'form' | 'loading' | 'success' | 'error';
 
-// ─── Loading steps (2-5 min process) ─────────────────────────────────────────
+// ─── Loading steps — clean messages ──────────────────────────────────────────
 
 const LOADING_STEPS = [
-  { at: 0,   text: 'Sending request to n8n scraper workflow...' },
-  { at: 8,   text: 'Connecting to Apify Google Maps scraper...' },
-  { at: 20,  text: 'Scraping Google Maps for businesses...' },
-  { at: 60,  text: 'Extracting business contact details...' },
+  { at: 0,   text: 'Sending request to workflow...' },
+  { at: 8,   text: 'Starting lead search...' },
+  { at: 20,  text: 'Searching for businesses...' },
+  { at: 60,  text: 'Extracting contact details...' },
   { at: 120, text: 'Validating email addresses...' },
-  { at: 180, text: 'Saving verified leads to Table...' },
-  { at: 240, text: 'Finalising and updating records...' },
-  { at: 290, text: 'Almost done — wrapping up...' },
+  { at: 240, text: 'Saving verified leads to table...' },
+  { at: 360, text: 'Finalising records...' },
+  { at: 500, text: 'Almost done — wrapping up...' },
 ];
 
-const SHEETS = [
+const TABLES = [
   'Hair Transplant Leads',
   'Dental Treatment Leads',
   'Cosmetic Surgery Leads',
@@ -64,24 +53,20 @@ const SHEETS = [
   'All Services Leads',
 ];
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function ScraperPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [pageState, setPageState] = useState<PageState>('form');
   const [elapsed, setElapsed] = useState(0);
-  const [result, setResult] = useState<ScraperResult | null>(null);
+  const [result, setResult] = useState<ApiResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Form fields
   const [niches, setNiches] = useState('');
   const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
   const [targetSheet, setTargetSheet] = useState('');
 
-  // Elapsed timer
   useEffect(() => {
     if (pageState !== 'loading') { setElapsed(0); return; }
     const id = setInterval(() => setElapsed((s) => s + 1), 1000);
@@ -89,7 +74,7 @@ export default function ScraperPage() {
   }, [pageState]);
 
   const currentStep = [...LOADING_STEPS].reverse().find((s) => elapsed >= s.at) ?? LOADING_STEPS[0];
-  const progressPct = Math.min((elapsed / 300) * 100, 95);
+  const progressPct = Math.min((elapsed / 600) * 100, 95);
 
   function formatTime(s: number) {
     if (s < 60) return `${s}s`;
@@ -111,41 +96,33 @@ export default function ScraperPage() {
       const res = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          niches: niches.trim(),
-          location: location.trim(),
-          max_results: Number(maxResults),
-          target_sheet: targetSheet,
-        }),
-        signal: AbortSignal.timeout(320000),
+        body: JSON.stringify({ niches: niches.trim(), location: location.trim(), max_results: Number(maxResults), target_sheet: targetSheet }),
+        signal: AbortSignal.timeout(620000), // 10+ min
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Scraper failed');
-      }
+      if (!res.ok) throw new Error(data.error || 'Scraper failed');
 
       setResult(data);
       setPageState('success');
       queryClient.invalidateQueries({ queryKey: ['scraper-jobs'] });
-      toast({ title: '✅ Scraping complete!', description: `${data.summary?.verified_leads ?? 0} verified leads saved.` });
+      toast({ title: '✅ Scraping complete!', description: `${data.result?.total_saved ?? 0} leads saved.` });
 
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Unknown error occurred');
+      setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
       setPageState('error');
       toast({ title: 'Scraper failed', description: err instanceof Error ? err.message : 'Try again.', variant: 'destructive' });
     }
   }
 
-  // ── FORM ───────────────────────────────────────────────────────────────────
+  // ── FORM + LOADING ────────────────────────────────────────────────────────
 
   if (pageState === 'form' || pageState === 'loading') {
     return (
       <div>
         <Header
           title="Lead Scraper"
-          description="Scrape Google Maps for business leads via Apify — verified emails only saved to sheet"
+          description="Find business leads and save verified contacts to your lead tables"
         />
 
         {/* Full-screen loading overlay */}
@@ -161,7 +138,7 @@ export default function ScraperPage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-bold text-gray-900">Scraping Google Maps...</h3>
+                <h3 className="text-lg font-bold text-gray-900">Scraping Leads...</h3>
                 <p className="text-sm text-[#0077b6] mt-1 min-h-[20px] font-medium">{currentStep.text}</p>
               </div>
 
@@ -174,10 +151,10 @@ export default function ScraperPage() {
 
               <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
                 <Clock className="h-3 w-3" />
-                <span>{formatTime(elapsed)} elapsed · typically 2–5 minutes</span>
+                <span>{formatTime(elapsed)} elapsed · typically 2–8 minutes</span>
               </div>
 
-              <p className="text-xs text-gray-300">Do not close this tab</p>
+              <p className="text-xs text-gray-300">Please keep this tab open</p>
             </div>
           </div>
         )}
@@ -195,10 +172,9 @@ export default function ScraperPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Search Configuration</CardTitle>
-                <CardDescription>Configure what to scrape on Google Maps via Apify</CardDescription>
+                <CardDescription>Configure your lead search parameters</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Niches */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Business Niches <span className="text-red-500">*</span>
@@ -206,72 +182,56 @@ export default function ScraperPage() {
                   <Input
                     value={niches}
                     onChange={(e) => setNiches(e.target.value)}
-                    placeholder="e.g. hair transplant clinic, dental clinic, cosmetic surgery"
+                    placeholder="e.g. hair clinic, dental clinic, cosmetic surgery"
                     disabled={pageState === 'loading'}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Comma-separated list of business types to search</p>
+                  <p className="text-xs text-gray-400 mt-1">Comma-separated list of business types</p>
                 </div>
 
-                {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Location <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g. London UK, Toronto Canada, Dubai UAE"
-                    disabled={pageState === 'loading'}
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      placeholder="e.g. London UK, Dubai UAE"
+                      disabled={pageState === 'loading'}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Max Results <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="number"
+                      min={10}
+                      max={500}
+                      value={maxResults}
+                      onChange={(e) => setMaxResults(e.target.value)}
+                      disabled={pageState === 'loading'}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Max 500 per run</p>
+                  </div>
                 </div>
 
-                {/* Max Results */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Results <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    type="number"
-                    min={10}
-                    max={500}
-                    value={maxResults}
-                    onChange={(e) => setMaxResults(e.target.value)}
-                    disabled={pageState === 'loading'}
-                  />
-                  <p className="text-xs text-gray-400 mt-1">Max 500 per run. More results = longer time.</p>
-                </div>
-
-                {/* Target Sheet */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Save Verified Leads To <span className="text-red-500">*</span>
                   </label>
                   <Select onValueChange={setTargetSheet} disabled={pageState === 'loading'}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select Table tab" />
-                    </SelectTrigger>
+                    <SelectTrigger><SelectValue placeholder="Select a lead table" /></SelectTrigger>
                     <SelectContent>
-                      {SHEETS.map((s) => (
-                        <SelectItem key={s} value={s}>{s}</SelectItem>
-                      ))}
+                      {TABLES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-400 mt-1">Only verified emails are saved here</p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Info box */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 space-y-1">
-              <p className="font-semibold">What gets saved to Table:</p>
-              <p className="text-xs text-blue-700">
-                first_name · last_name · mobile_number · personal_email · linkedin · city · country · email_status
-              </p>
-              <p className="text-xs text-blue-600 mt-1">Invalid emails go to a separate "Invalid_Emails" sheet automatically.</p>
-            </div>
-
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              <strong>Note:</strong> Scraping takes 2–5 minutes depending on result count. Keep this tab open.
+              <strong>Note:</strong> This process takes 2–8 minutes depending on the number of results. Please keep this tab open.
             </div>
 
             <Button
@@ -283,7 +243,7 @@ export default function ScraperPage() {
               {pageState === 'loading' ? (
                 <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Scraping in progress...</>
               ) : (
-                <><Search className="mr-2 h-5 w-5" /> Start Lead Scraping</>
+                <><Search className="mr-2 h-5 w-5" /> Start Lead Scraper</>
               )}
             </Button>
           </form>
@@ -292,117 +252,75 @@ export default function ScraperPage() {
     );
   }
 
-  // ── SUCCESS ────────────────────────────────────────────────────────────────
+  // ── SUCCESS ───────────────────────────────────────────────────────────────
 
-  if (pageState === 'success' && result) {
-    const { summary, sheetInfo, executionTime } = result;
+  if (pageState === 'success' && result?.result) {
+    const r = result.result;
 
     return (
       <div>
         <Header title="Lead Scraper" description="Scraping completed successfully" />
-
         <div className="p-6 max-w-2xl mx-auto space-y-6">
-          {/* Success header */}
+
           <div className="flex flex-col items-center text-center py-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-3">
               <CheckCircle className="h-9 w-9 text-green-600" />
             </div>
             <h2 className="text-xl font-bold text-gray-900">Scraping Complete!</h2>
             <p className="text-sm text-gray-500 mt-1">
-              {summary.location} · {executionTime ? formatTime(executionTime) : formatTime(elapsed)}
+              {r.execution_time ? `Completed in ${formatTime(r.execution_time)}` : ''}
             </p>
           </div>
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[
-              { label: 'Total Scraped', value: summary.total_scraped, icon: Search, color: 'text-blue-600 bg-blue-50 border-blue-200' },
-              { label: 'Verified', value: summary.verified_leads, icon: CheckCircle, color: 'text-green-600 bg-green-50 border-green-200' },
-              { label: 'Invalid', value: summary.invalid_leads, icon: XCircle, color: 'text-red-500 bg-red-50 border-red-200' },
-              { label: 'Unknown', value: summary.unknown_leads, icon: HelpCircle, color: 'text-gray-500 bg-gray-50 border-gray-200' },
-            ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className={`rounded-xl border p-4 text-center ${color}`}>
-                <Icon className="h-5 w-5 mx-auto mb-1 opacity-70" />
-                <p className="text-2xl font-bold">{value}</p>
-                <p className="text-xs mt-0.5">{label}</p>
-              </div>
-            ))}
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="text-center border-blue-200 bg-blue-50">
+              <CardContent className="pt-5 pb-4">
+                <Users className="h-6 w-6 text-blue-600 mx-auto mb-1" />
+                <p className="text-3xl font-bold text-blue-700">{r.total_scraped.toLocaleString()}</p>
+                <p className="text-xs text-blue-600 mt-1">Total Leads Found</p>
+              </CardContent>
+            </Card>
+            <Card className="text-center border-green-200 bg-green-50">
+              <CardContent className="pt-5 pb-4">
+                <CheckCircle className="h-6 w-6 text-green-600 mx-auto mb-1" />
+                <p className="text-3xl font-bold text-green-700">{r.total_saved.toLocaleString()}</p>
+                <p className="text-xs text-green-600 mt-1">Leads Saved to Table</p>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Success rate */}
-          <Card>
-            <CardContent className="pt-5 pb-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-                  <BarChart3 className="h-4 w-4 text-[#0077b6]" />
-                  Email Verification Rate
+          {/* Table info */}
+          <Card className="border-green-200">
+            <CardContent className="pt-4 pb-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Saved to Table</span>
+                <span className="font-semibold text-gray-800">{r.table_name.replace(/_/g, ' ')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Save Status</span>
+                <span className={`font-semibold ${r.save_status === 'success' ? 'text-green-600' : 'text-red-500'}`}>
+                  {r.save_status === 'success' ? '✅ Saved successfully' : r.save_status}
+                </span>
+              </div>
+              {r.total_scraped > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Save Rate</span>
+                  <span className="font-semibold text-[#0077b6]">
+                    {Math.round((r.total_saved / r.total_scraped) * 100)}%
+                  </span>
                 </div>
-                <span className="text-lg font-bold text-[#0077b6]">{summary.success_rate}</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5">
-                <div
-                  className="bg-[#0077b6] h-2.5 rounded-full"
-                  style={{ width: summary.success_rate }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-2">
-                <span>{summary.verified_leads} verified</span>
-                <span>{summary.total_scraped} total</span>
-              </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Sheet info */}
-          {sheetInfo && (
-            <Card className="border-green-200">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2 text-green-700">
-                  <Users className="h-4 w-4" />
-                  Leads Saved to Table
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Sheet Tab</span>
-                  <span className="font-medium">{sheetInfo.sheet_tab}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Leads Added</span>
-                  <span className="font-bold text-green-600">{sheetInfo.leads_added}</span>
-                </div>
-                {sheetInfo.sheet_url && (
-                  <Button
-                    asChild
-                    className="w-full bg-green-600 hover:bg-green-700 text-white mt-2"
-                  >
-                    <a href={sheetInfo.sheet_url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Open Table
-                    </a>
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Actions */}
           <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => {
-                setPageState('form');
-                setNiches('');
-                setLocation('');
-                setMaxResults('100');
-                setTargetSheet('');
-              }}
-            >
-              <Search className="h-4 w-4" /> Scrape Again
+            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setLocation(''); setMaxResults('100'); setTargetSheet(''); }}>
+              <Search className="mr-2 h-4 w-4" /> Scrape Again
             </Button>
-            <Button variant="outline" asChild className="gap-2">
+            <Button variant="outline" asChild>
               <Link href="/dashboard/scraper/history">
-                <History className="h-4 w-4" /> View History
+                <History className="mr-2 h-4 w-4" /> View History
               </Link>
             </Button>
           </div>
@@ -411,7 +329,7 @@ export default function ScraperPage() {
     );
   }
 
-  // ── ERROR ──────────────────────────────────────────────────────────────────
+  // ── ERROR ─────────────────────────────────────────────────────────────────
 
   return (
     <div>
@@ -424,15 +342,10 @@ export default function ScraperPage() {
             </div>
             <div>
               <h3 className="text-lg font-bold text-gray-900">Scraper Failed</h3>
-              <p className="text-sm text-gray-500 mt-1">n8n workflow returned an error</p>
-            </div>
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 text-left">
-              {errorMsg || 'Unknown error occurred. Check your n8n workflow logs.'}
+              <p className="text-sm text-red-600 mt-2">{errorMsg}</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Button variant="outline" onClick={() => setPageState('form')}>
-                Try Again
-              </Button>
+              <Button variant="outline" onClick={() => setPageState('form')}>Try Again</Button>
               <Button asChild variant="outline">
                 <Link href="/dashboard/scraper/history">View History</Link>
               </Button>
