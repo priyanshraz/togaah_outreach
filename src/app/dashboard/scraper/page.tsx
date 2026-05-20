@@ -197,22 +197,13 @@ export default function ScraperPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Country <span className="text-red-500">*</span>
                   </label>
-                  <Select onValueChange={setCountry} disabled={pageState === 'loading'}>
-                    <SelectTrigger><SelectValue placeholder="Select a country" /></SelectTrigger>
-                    <SelectContent>
-                      {[
-                        'United Kingdom','United States','United Arab Emirates','Canada',
-                        'Australia','Germany','France','Italy','Spain','Netherlands',
-                        'Turkey','India','Pakistan','Saudi Arabia','Qatar','Kuwait',
-                        'Bahrain','Oman','Egypt','Jordan','Lebanon','South Africa',
-                        'Nigeria','Kenya','Singapore','Malaysia','Indonesia','Philippines',
-                        'Thailand','Japan','South Korea','China','New Zealand','Ireland',
-                        'Sweden','Norway','Denmark','Switzerland','Austria','Belgium',
-                        'Portugal','Poland','Czech Republic','Hungary','Romania','Greece',
-                      ].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-400 mt-1">Select the target country</p>
+                  <Input
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    placeholder="e.g. United Kingdom, UAE, Canada"
+                    disabled={pageState === 'loading'}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Type the target country</p>
                 </div>
 
                 {/* Location + Max Results */}
