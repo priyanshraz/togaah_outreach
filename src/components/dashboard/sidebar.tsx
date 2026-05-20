@@ -10,13 +10,10 @@ import {
   Search,
   Trash2,
   BarChart3,
-  LogOut,
   History,
   TrendingUp,
   RefreshCw,
 } from 'lucide-react';
-import { signOut } from 'next-auth/react';
-import { Button } from '@/components/ui/button';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -75,17 +72,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-white/10 p-4">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-3 px-3 text-sm text-white/60 hover:bg-white/10 hover:text-white"
-          onClick={() => signOut({ callbackUrl: '/login' })}
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
-      </div>
     </div>
   );
 }

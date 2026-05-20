@@ -1,7 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { Bell, User } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface HeaderProps {
@@ -10,8 +9,6 @@ interface HeaderProps {
 }
 
 export function Header({ title, description }: HeaderProps) {
-  const { data: session } = useSession();
-
   return (
     <div className="flex h-16 items-center justify-between border-b bg-white px-6">
       <div>
@@ -23,12 +20,10 @@ export function Header({ title, description }: HeaderProps) {
           <Bell className="h-5 w-5" />
         </Button>
         <div className="flex items-center gap-2 rounded-full bg-[#0077b6]/10 px-3 py-1.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0077b6] text-white">
-            <User className="h-4 w-4" />
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0077b6] text-white text-xs font-bold">
+            T
           </div>
-          <span className="text-sm font-medium text-gray-700">
-            {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
-          </span>
+          <span className="text-sm font-medium text-gray-700">Toga Admin</span>
         </div>
       </div>
     </div>
