@@ -1,5 +1,3 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { Header } from '@/components/dashboard/header';
 import { StatsCard } from '@/components/dashboard/stats-card';
@@ -58,10 +56,7 @@ async function getDashboardStats(userId: string) {
 }
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
-
-  const stats = await getDashboardStats(session.user.id);
+  const stats = await getDashboardStats('admin');
 
   // Serialize for the client component
   const executions: ExecutionItem[] = stats.recentExecutions.map((exec) => ({
