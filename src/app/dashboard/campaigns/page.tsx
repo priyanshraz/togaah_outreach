@@ -633,78 +633,90 @@ export default function CampaignsPage() {
           {/* ── SUCCESS STATE ── */}
           {dialogState === 'success' && approvalResult && (
             <div className="flex flex-col px-6 py-10 text-center space-y-5">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
-                <PartyPopper className="h-10 w-10 text-green-600" />
-              </div>
 
-              <div>
-                <h3 className="text-xl font-bold text-gray-900">Email Approved!</h3>
-                <p className="text-sm text-gray-500 mt-1">Emails have been sent via Instantly.ai</p>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-3 w-full">
-                {(approvalResult.emails_sent != null || approvalResult.total_sent != null) ? (
-                  <div className="rounded-xl bg-green-50 border border-green-200 p-4">
-                    <p className="text-3xl font-bold text-green-700">
-                      {approvalResult.emails_sent ?? approvalResult.total_sent}
-                    </p>
-                    <p className="text-xs text-green-600 mt-1">Emails Sent</p>
+              {/* ── NO LEADS: show warning only, no green success ── */}
+              {approvalResult.status === 'no_leads_available' ? (
+                <>
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-amber-100">
+                    <span className="text-4xl">⚠️</span>
                   </div>
-                ) : (
-                  <div className="col-span-2 rounded-xl bg-green-50 border border-green-200 p-4 flex items-center gap-3">
-                    <CheckCircle className="h-8 w-8 text-green-500 flex-shrink-0" />
-                    <p className="text-sm text-green-700 font-medium text-left">
-                      Emails sent successfully via Instantly.ai
-                    </p>
-                  </div>
-                )}
-                {(approvalResult.failed ?? 0) > 0 && (
-                  <div className="rounded-xl bg-red-50 border border-red-200 p-4">
-                    <p className="text-3xl font-bold text-red-600">{approvalResult.failed}</p>
-                    <p className="text-xs text-red-500 mt-1">Failed</p>
-                  </div>
-                )}
-              </div>
-
-              {/* No leads available — styled amber warning */}
-              {approvalResult.status === 'no_leads_available' && (
-                <div className="w-full flex items-start gap-3 rounded-lg border border-amber-400 px-4 py-4 text-left"
-                     style={{ backgroundColor: '#FFF8E1' }}>
-                  <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
                   <div>
-                    <p className="font-bold text-amber-800 text-sm">No New Leads Available</p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      There are no new leads to send outreach messages. Please scrape leads first, then start outreach.
-                    </p>
+                    <h3 className="text-xl font-bold text-gray-900">No Leads Available</h3>
+                    <p className="text-sm text-gray-500 mt-1">No emails were sent</p>
                   </div>
-                </div>
-              )}
+                  <div className="w-full flex items-start gap-3 rounded-lg border border-amber-400 px-4 py-4 text-left"
+                       style={{ backgroundColor: '#FFF8E1' }}>
+                    <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
+                    <div>
+                      <p className="font-bold text-amber-800 text-sm">No New Leads Available</p>
+                      <p className="text-xs text-amber-700 mt-1">
+                        There are no new leads to send outreach messages. Please scrape leads first, then start outreach.
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* ── EMAILS ACTUALLY SENT: show green success ── */
+                <>
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+                    <PartyPopper className="h-10 w-10 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Email Approved!</h3>
+                    <p className="text-sm text-gray-500 mt-1">Emails have been sent via Instantly.ai</p>
+                  </div>
 
-              {/* n8n message + execution id */}
-              {approvalResult.status !== 'no_leads_available' && (approvalResult.message || approvalResult.execution_id) && (
-                <div className="w-full rounded-lg bg-gray-50 border px-4 py-3 text-left space-y-1">
-                  {approvalResult.message && (
-                    <p className="text-sm text-gray-700">{approvalResult.message}</p>
-                  )}
-                  {approvalResult.execution_id && (
-                    <p className="text-xs text-gray-400">Execution ID: {approvalResult.execution_id}</p>
-                  )}
-                </div>
-              )}
+                  {/* Sent count */}
+                  <div className="grid grid-cols-2 gap-3 w-full">
+                    {(approvalResult.emails_sent != null || approvalResult.total_sent != null) ? (
+                      <div className="rounded-xl bg-green-50 border border-green-200 p-4">
+                        <p className="text-3xl font-bold text-green-700">
+                          {approvalResult.emails_sent ?? approvalResult.total_sent}
+                        </p>
+                        <p className="text-xs text-green-600 mt-1">Emails Sent</p>
+                      </div>
+                    ) : (
+                      <div className="col-span-2 rounded-xl bg-green-50 border border-green-200 p-4 flex items-center gap-3">
+                        <CheckCircle className="h-8 w-8 text-green-500 flex-shrink-0" />
+                        <p className="text-sm text-green-700 font-medium text-left">
+                          Emails sent successfully via Instantly.ai
+                        </p>
+                      </div>
+                    )}
+                    {(approvalResult.failed ?? 0) > 0 && (
+                      <div className="rounded-xl bg-red-50 border border-red-200 p-4">
+                        <p className="text-3xl font-bold text-red-600">{approvalResult.failed}</p>
+                        <p className="text-xs text-red-500 mt-1">Failed</p>
+                      </div>
+                    )}
+                  </div>
 
-              {/* Warnings */}
-              {approvalResult.errors && approvalResult.errors.length > 0 && (
-                <div className="w-full rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-left">
-                  <p className="text-xs font-semibold text-yellow-800 mb-2">
-                    Warnings ({approvalResult.errors.length})
-                  </p>
-                  <ul className="space-y-1">
-                    {approvalResult.errors.map((e, i) => (
-                      <li key={i} className="text-xs text-yellow-700">• {e}</li>
-                    ))}
-                  </ul>
-                </div>
+                  {/* n8n message */}
+                  {(approvalResult.message || approvalResult.execution_id) && (
+                    <div className="w-full rounded-lg bg-gray-50 border px-4 py-3 text-left space-y-1">
+                      {approvalResult.message && (
+                        <p className="text-sm text-gray-700">{approvalResult.message}</p>
+                      )}
+                      {approvalResult.execution_id && (
+                        <p className="text-xs text-gray-400">Execution ID: {approvalResult.execution_id}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Warnings */}
+                  {approvalResult.errors && approvalResult.errors.length > 0 && (
+                    <div className="w-full rounded-lg bg-yellow-50 border border-yellow-200 px-4 py-3 text-left">
+                      <p className="text-xs font-semibold text-yellow-800 mb-2">
+                        Warnings ({approvalResult.errors.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {approvalResult.errors.map((e, i) => (
+                          <li key={i} className="text-xs text-yellow-700">• {e}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </>
               )}
 
               <Button
