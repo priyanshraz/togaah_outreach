@@ -63,6 +63,7 @@ export default function ScraperPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const [niches, setNiches] = useState('');
+  const [country, setCountry] = useState('');
   const [location, setLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
   const [targetSheet, setTargetSheet] = useState('');
@@ -83,10 +84,13 @@ export default function ScraperPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!niches.trim() || !location.trim() || !targetSheet) {
-      toast({ title: 'Missing fields', description: 'Please fill in all required fields.', variant: 'destructive' });
+    if (!niches.trim() || !country || !location.trim() || !targetSheet) {
+      toast({ title: 'Missing fields', description: 'Please fill in all required fields including Country.', variant: 'destructive' });
       return;
     }
+
+    // Combine country + location for the search query
+    const fullLocation = `${location.trim()}, ${country}`;
 
     setPageState('loading');
     setResult(null);
@@ -96,7 +100,7 @@ export default function ScraperPage() {
       const res = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niches: niches.trim(), location: location.trim(), max_results: Number(maxResults), target_sheet: targetSheet }),
+        body: JSON.stringify({ niches: niches.trim(), location: fullLocation, country, max_results: Number(maxResults), target_sheet: targetSheet }),
         signal: AbortSignal.timeout(620000), // 10+ min
       });
 
@@ -188,17 +192,42 @@ export default function ScraperPage() {
                   <p className="text-xs text-gray-400 mt-1">Comma-separated list of business types</p>
                 </div>
 
+                {/* Country */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Country <span className="text-red-500">*</span>
+                  </label>
+                  <Select onValueChange={setCountry} disabled={pageState === 'loading'}>
+                    <SelectTrigger><SelectValue placeholder="Select a country" /></SelectTrigger>
+                    <SelectContent>
+                      {[
+                        'United Kingdom','United States','United Arab Emirates','Canada',
+                        'Australia','Germany','France','Italy','Spain','Netherlands',
+                        'Turkey','India','Pakistan','Saudi Arabia','Qatar','Kuwait',
+                        'Bahrain','Oman','Egypt','Jordan','Lebanon','South Africa',
+                        'Nigeria','Kenya','Singapore','Malaysia','Indonesia','Philippines',
+                        'Thailand','Japan','South Korea','China','New Zealand','Ireland',
+                        'Sweden','Norway','Denmark','Switzerland','Austria','Belgium',
+                        'Portugal','Poland','Czech Republic','Hungary','Romania','Greece',
+                      ].map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-400 mt-1">Select the target country</p>
+                </div>
+
+                {/* Location + Max Results */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Location <span className="text-red-500">*</span>
+                      City / State <span className="text-red-500">*</span>
                     </label>
                     <Input
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g. London UK, Dubai UAE"
+                      placeholder="e.g. London, Dubai, Toronto"
                       disabled={pageState === 'loading'}
                     />
+                    <p className="text-xs text-gray-400 mt-1">City or region within the country</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -315,7 +344,7 @@ export default function ScraperPage() {
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setLocation(''); setMaxResults('100'); setTargetSheet(''); }}>
+            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setCountry(''); setLocation(''); setMaxResults('100'); setTargetSheet(''); }}>
               <Search className="mr-2 h-4 w-4" /> Scrape Again
             </Button>
             <Button variant="outline" asChild>
