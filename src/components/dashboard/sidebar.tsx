@@ -10,7 +10,6 @@ import {
   Search,
   Trash2,
   BarChart3,
-  Settings,
   LogOut,
   History,
   TrendingUp,
@@ -77,14 +76,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/10 p-4 space-y-2">
-        <Link
-          href="/dashboard/settings"
-          className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-white/60 hover:bg-white/10 hover:text-white transition-colors"
-        >
-          <Settings className="h-4 w-4" />
-          Settings
-        </Link>
+      <div className="border-t border-white/10 p-4">
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 text-sm text-white/60 hover:bg-white/10 hover:text-white"

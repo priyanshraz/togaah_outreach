@@ -55,7 +55,7 @@ interface ApprovalResult {
   error?: string;
 }
 
-type DialogState = 'preview' | 'loading' | 'success' | 'error';
+type DialogState = 'preview' | 'loading' | 'success' | 'error' | 'regenerating' | 'reject_form';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -109,13 +109,14 @@ export default function CampaignsPage() {
 
   const [selectedCampaign, setSelectedCampaign]   = useState<Campaign | null>(null);
   const [comments, setComments]                   = useState('');
+  const [rejectReason, setRejectReason]           = useState('');
   const [dialogState, setDialogState]             = useState<DialogState>('preview');
   const [approvalResult, setApprovalResult]       = useState<ApprovalResult | null>(null);
   const [elapsed, setElapsed]                     = useState(0);
 
-  // Tick elapsed counter while loading
+  // Tick elapsed counter while loading/regenerating
   useEffect(() => {
-    if (dialogState !== 'loading') { setElapsed(0); return; }
+    if (dialogState !== 'loading' && dialogState !== 'regenerating') { setElapsed(0); return; }
     const id = setInterval(() => setElapsed((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [dialogState]);
@@ -140,11 +141,12 @@ export default function CampaignsPage() {
   }
 
   function closeDialog() {
-    if (dialogState === 'loading') return; // block close during send
+    if (dialogState === 'loading' || dialogState === 'regenerating') return;
     setSelectedCampaign(null);
     setDialogState('preview');
     setApprovalResult(null);
     setComments('');
+    setRejectReason('');
   }
 
   // ── Approval handlers ───────────────────────────────────────────────────────
@@ -174,26 +176,70 @@ export default function CampaignsPage() {
     }
   }
 
-  async function handleReject() {
-    if (!selectedCampaign) return;
-    setDialogState('loading');
+  // Show reject form to collect correction reason
+  function handleRejectClick() {
+    setRejectReason('');
+    setDialogState('reject_form');
+  }
+
+  // Reject without regeneration (quick reject from list)
+  async function handleQuickRejectFinal(campaignId: string) {
     try {
       const res = await fetch('/api/campaigns/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId, decision: 'rejected', comments: 'Quick reject' }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+      toast({ title: 'Email rejected' });
+    } catch {
+      toast({ title: 'Error', description: 'Could not reject email', variant: 'destructive' });
+    }
+  }
+
+  // Reject + regenerate: mark old rejected, create new campaign via n8n
+  async function handleRejectAndRegenerate() {
+    if (!selectedCampaign || !rejectReason.trim()) return;
+    setDialogState('regenerating');
+    try {
+      // Step 1: Mark current campaign as rejected
+      await fetch('/api/campaigns/approve', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           campaignId: selectedCampaign.id,
           decision: 'rejected',
-          comments: comments || 'No reason provided',
+          comments: rejectReason,
         }),
       });
-      if (!res.ok) throw new Error('Rejection failed');
+
+      // Step 2: Re-trigger n8n with correction note
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          campaign_name: selectedCampaign.campaignName,
+          service_type: selectedCampaign.serviceType,
+          target_region: selectedCampaign.targetRegion,
+          campaign_goal: selectedCampaign.campaignGoal,
+          campaign_message: `${selectedCampaign.campaignGoal}\n\nCORRECTION REQUIRED: ${rejectReason}`,
+          cta_button_text: 'Book Free Consultation',
+          tone: 'Warm and educational',
+          selected_sheet: selectedCampaign.selectedSheet,
+        }),
+        signal: AbortSignal.timeout(130000),
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Regeneration failed');
+
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
       closeDialog();
-      toast({ title: 'Email rejected' });
+      toast({ title: '✅ Email regenerated!', description: 'New version is pending approval.' });
     } catch (err) {
       toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed', variant: 'destructive' });
-      setDialogState('preview');
+      setDialogState('reject_form');
     }
   }
 
@@ -538,10 +584,10 @@ export default function CampaignsPage() {
                 <Button
                   variant="destructive"
                   className="flex-1"
-                  onClick={handleReject}
+                  onClick={handleRejectClick}
                 >
                   <XCircle className="mr-2 h-4 w-4" />
-                  Reject
+                  Reject & Regenerate
                 </Button>
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold"
@@ -621,8 +667,22 @@ export default function CampaignsPage() {
                 )}
               </div>
 
+              {/* No leads available — styled amber warning */}
+              {approvalResult.status === 'no_leads_available' && (
+                <div className="w-full flex items-start gap-3 rounded-lg border border-amber-400 px-4 py-4 text-left"
+                     style={{ backgroundColor: '#FFF8E1' }}>
+                  <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
+                  <div>
+                    <p className="font-bold text-amber-800 text-sm">No New Leads Available</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      There are no new leads to send outreach messages. Please scrape leads first, then start outreach.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* n8n message + execution id */}
-              {(approvalResult.message || approvalResult.execution_id) && (
+              {approvalResult.status !== 'no_leads_available' && (approvalResult.message || approvalResult.execution_id) && (
                 <div className="w-full rounded-lg bg-gray-50 border px-4 py-3 text-left space-y-1">
                   {approvalResult.message && (
                     <p className="text-sm text-gray-700">{approvalResult.message}</p>
@@ -691,6 +751,70 @@ export default function CampaignsPage() {
                   Close
                 </Button>
               </div>
+            </div>
+          )}
+
+          {/* ── REJECT FORM STATE ── */}
+          {dialogState === 'reject_form' && selectedCampaign && (
+            <>
+              <div className="px-6 pt-6 pb-4 border-b flex-shrink-0">
+                <DialogHeader>
+                  <DialogTitle className="text-lg">Request Changes</DialogTitle>
+                </DialogHeader>
+              </div>
+              <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                <p className="text-sm text-gray-600">
+                  Describe what needs to be changed. The AI will regenerate the email with your corrections.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                    What needs to be corrected? <span className="text-red-500">*</span>
+                  </label>
+                  <Textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="e.g. Change the tone to be more professional. Remove mention of discounts. Focus on hair transplant benefits..."
+                    rows={5}
+                    className="resize-none"
+                    autoFocus
+                  />
+                </div>
+                <div className="rounded-lg bg-blue-50 border border-blue-200 px-4 py-3 text-xs text-blue-700">
+                  The AI will use your feedback to regenerate a new email version, which will appear in Pending Approval.
+                </div>
+              </div>
+              <div className="flex-shrink-0 border-t bg-white px-6 py-4 flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setDialogState('preview')}>
+                  Back
+                </Button>
+                <Button
+                  className="flex-1 bg-[#0077b6] hover:bg-[#005f8f] text-white"
+                  disabled={!rejectReason.trim()}
+                  onClick={handleRejectAndRegenerate}
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Regenerate Email
+                </Button>
+              </div>
+            </>
+          )}
+
+          {/* ── REGENERATING STATE ── */}
+          {dialogState === 'regenerating' && (
+            <div className="flex flex-col items-center justify-center px-6 py-14 text-center space-y-6">
+              <div className="relative h-20 w-20">
+                <div className="absolute inset-0 rounded-full border-4 border-[#0077b6]/20" />
+                <div className="absolute inset-0 rounded-full border-4 border-t-[#0077b6] animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <RotateCcw className="h-7 w-7 text-[#0077b6]" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Regenerating Email...</h3>
+                <p className="text-sm text-gray-500 mt-1">AI is creating a new version based on your feedback</p>
+              </div>
+              <p className="text-xs text-gray-400">{elapsed}s elapsed · typically 30–90s</p>
+              <p className="text-xs text-gray-300">Please keep this dialog open</p>
             </div>
           )}
 
