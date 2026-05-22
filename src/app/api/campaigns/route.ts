@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 import { prisma } from '@/lib/prisma';
 
 interface N8nCampaignResponse {
@@ -32,8 +31,8 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -59,8 +58,8 @@ export async function POST(req: NextRequest) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...body,
-          user_id: session.user.id,
-          user_email: session.user.email,
+          user_id: user.id,
+          user_email: user.email,
         }),
         signal: AbortSignal.timeout(130000),
       });
@@ -102,7 +101,7 @@ export async function POST(req: NextRequest) {
     try {
       execution = await prisma.workflowExecution.create({
         data: {
-          userId: session.user.id,
+          userId: user.id,
           workflowType: 'CAMPAIGN',
           workflowName: body.campaign_name,
           status: 'SUCCESS',
@@ -138,7 +137,7 @@ export async function POST(req: NextRequest) {
             ? JSON.stringify(n8nData.campaign_preview)
             : null,
           status: 'PENDING_APPROVAL',
-          createdBy: session.user.id,
+          createdBy: user.id,
         },
       });
     } catch (dbErr) {
@@ -169,13 +168,13 @@ export async function POST(req: NextRequest) {
 
 export async function GET(_req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const campaigns = await prisma.campaign.findMany({
-      where: { execution: { userId: session.user.id } },
+      where: { execution: { userId: user.id } },
       include: {
         execution: {
           select: { status: true, createdAt: true, duration: true, outputData: true },

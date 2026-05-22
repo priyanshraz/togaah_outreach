@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 const INSTANTLY_BASE = 'https://api.instantly.ai/api/v2';
 
@@ -27,8 +26,8 @@ async function instantlyFetch(endpoint: string) {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

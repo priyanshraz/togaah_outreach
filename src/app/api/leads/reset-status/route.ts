@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 
 const VALID_TABLES = [
   'all_service_leads',
@@ -24,8 +23,8 @@ const DISPLAY_NAMES: Record<string, string> = {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -54,8 +53,8 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({
           table_name,
           display_name: DISPLAY_NAMES[table_name],
-          user_id: session.user.id,
-          user_email: session.user.email,
+          user_id: user.id,
+          user_email: user.email,
         }),
         signal: AbortSignal.timeout(60000),
       });

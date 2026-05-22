@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 import { prisma } from '@/lib/prisma';
 
 // DELETE /api/executions/[id]
@@ -12,8 +11,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,7 +25,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Execution not found' }, { status: 404 });
     }
 
-    if (execution.userId !== session.user.id) {
+    if (execution.userId !== user.id) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

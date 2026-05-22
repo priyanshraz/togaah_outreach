@@ -1,15 +1,14 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 import { prisma } from '@/lib/prisma';
 import { n8nClient } from '@/lib/n8n';
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -18,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const execution = await prisma.workflowExecution.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         workflowType: 'CLEANUP',
         workflowName: forceCleanup ? 'Manual Cleanup' : 'Scheduled Cleanup',
         status: 'RUNNING',
@@ -30,7 +29,7 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now();
     const n8nResponse = await n8nClient.triggerCleanup({
       force_cleanup: forceCleanup,
-      user_id: session.user.id,
+      user_id: user.id,
     });
 
     const results = n8nResponse.results as Record<string, unknown> | undefined;

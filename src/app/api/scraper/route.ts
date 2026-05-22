@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 import { prisma } from '@/lib/prisma';
 
 // n8n actual response format (from screenshot)
@@ -41,8 +40,8 @@ export async function POST(req: NextRequest) {
   const startTime = Date.now();
 
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    const user = await getAuthUser();
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -56,7 +55,7 @@ export async function POST(req: NextRequest) {
     // Create execution record
     const execution = await prisma.workflowExecution.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         workflowType: 'SCRAPER',
         workflowName: `${location} — ${niches}`,
         status: 'RUNNING',
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
           location,
           max_results: Number(max_results),
           target_sheet,
-          user_id: session.user.id,
+          user_id: user.id,
         }),
         signal: AbortSignal.timeout(600000), // 10 minutes
       });
