@@ -37,7 +37,7 @@ export function ScraperForm() {
       niches: '',
       location: '',
       max_results: 100,
-      target_sheet: 'table2',
+      target_sheet: 'table1',
     },
   });
 
@@ -146,12 +146,12 @@ export function ScraperForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="table2">Hair Transplant Leads</SelectItem>
-                      <SelectItem value="table3">Dental Treatment Leads</SelectItem>
-                      <SelectItem value="table4">Cosmetic Surgery Leads</SelectItem>
-                      <SelectItem value="table6">IVF Fertility Leads</SelectItem>
-                      <SelectItem value="table5">Eye Treatment Leads</SelectItem>
-                      <SelectItem value="table1">All Services Leads</SelectItem>
+                      <SelectItem value="table1">table1</SelectItem>
+                      <SelectItem value="table2">table2</SelectItem>
+                      <SelectItem value="table3">table3</SelectItem>
+                      <SelectItem value="table4">table4</SelectItem>
+                      <SelectItem value="table5">table5</SelectItem>
+                      <SelectItem value="table6">table6</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>Which Table to save leads into</FormDescription>

@@ -45,12 +45,12 @@ const LOADING_STEPS = [
 ];
 
 const TABLES = [
-  { value: 'table2', label: 'Hair Transplant Leads' },
-  { value: 'table3', label: 'Dental Treatment Leads' },
-  { value: 'table4', label: 'Cosmetic Surgery Leads' },
-  { value: 'table6', label: 'IVF Fertility Leads' },
-  { value: 'table5', label: 'Eye Treatment Leads' },
-  { value: 'table1', label: 'All Services Leads' },
+  { value: 'table1', label: 'table1' },
+  { value: 'table2', label: 'table2' },
+  { value: 'table3', label: 'table3' },
+  { value: 'table4', label: 'table4' },
+  { value: 'table5', label: 'table5' },
+  { value: 'table6', label: 'table6' },
 ];
 
 export default function ScraperPage() {

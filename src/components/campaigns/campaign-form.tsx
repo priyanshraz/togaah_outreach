@@ -43,7 +43,7 @@ export function CampaignForm() {
       cta_button_text: 'Book Free Analysis',
       cta_link: 'https://www.toga.com/en/contact',
       tone: 'Warm and educational',
-      selected_sheet: 'table2',
+      selected_sheet: 'table1',
     },
   });
 
@@ -162,12 +162,12 @@ export function CampaignForm() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="table2">Hair Transplant Leads</SelectItem>
-                      <SelectItem value="table3">Dental Treatment Leads</SelectItem>
-                      <SelectItem value="table4">Cosmetic Surgery Leads</SelectItem>
-                      <SelectItem value="table6">IVF Fertility Leads</SelectItem>
-                      <SelectItem value="table5">Eye Treatment Leads</SelectItem>
-                      <SelectItem value="table1">All Services Leads</SelectItem>
+                      <SelectItem value="table1">table1</SelectItem>
+                      <SelectItem value="table2">table2</SelectItem>
+                      <SelectItem value="table3">table3</SelectItem>
+                      <SelectItem value="table4">table4</SelectItem>
+                      <SelectItem value="table5">table5</SelectItem>
+                      <SelectItem value="table6">table6</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>Which Table to pull leads from</FormDescription>

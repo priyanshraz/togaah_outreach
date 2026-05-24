@@ -13,12 +13,12 @@ const VALID_TABLES = [
 ];
 
 const DISPLAY_NAMES: Record<string, string> = {
-  table1: 'All Services Leads',
-  table2: 'Hair Transplant Leads',
-  table3: 'Dental Treatment Leads',
-  table4: 'Cosmetic Surgery Leads',
-  table5: 'Eye Treatment Leads',
-  table6: 'IVF Fertility Leads',
+  table1: 'table1',
+  table2: 'table2',
+  table3: 'table3',
+  table4: 'table4',
+  table5: 'table5',
+  table6: 'table6',
 };
 
 export async function POST(req: NextRequest) {
