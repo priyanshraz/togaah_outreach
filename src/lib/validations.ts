@@ -21,28 +21,14 @@ export const campaignSchema = z.object({
     'Professional and clinical',
     'Friendly and encouraging',
   ]),
-  selected_sheet: z.enum([
-    'Hair Transplant Leads',
-    'Dental Treatment Leads',
-    'Cosmetic Surgery Leads',
-    'IVF Fertility Leads',
-    'Eye Treatment Leads',
-    'All Services Leads',
-  ]),
+  selected_sheet: z.enum(['table1', 'table2', 'table3', 'table4', 'table5', 'table6']),
 });
 
 export const scraperSchema = z.object({
   niches: z.string().min(1, 'At least one niche is required'),
   location: z.string().min(1, 'Location is required'),
   max_results: z.number().min(1).max(1000),
-  target_sheet: z.enum([
-    'Hair Transplant Leads',
-    'Dental Treatment Leads',
-    'Cosmetic Surgery Leads',
-    'IVF Fertility Leads',
-    'Eye Treatment Leads',
-    'All Services Leads',
-  ]),
+  target_sheet: z.enum(['table1', 'table2', 'table3', 'table4', 'table5', 'table6']),
 });
 
 export const loginSchema = z.object({
