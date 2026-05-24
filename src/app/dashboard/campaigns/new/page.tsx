@@ -260,12 +260,12 @@ export default function NewCampaignPage() {
                   <Select onValueChange={(v) => form.setValue('selected_sheet', v)} disabled={isSubmitting}>
                     <SelectTrigger><SelectValue placeholder="Select Table tab" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Hair Transplant Leads">Hair Transplant Leads</SelectItem>
-                      <SelectItem value="Dental Treatment Leads">Dental Treatment Leads</SelectItem>
-                      <SelectItem value="Cosmetic Surgery Leads">Cosmetic Surgery Leads</SelectItem>
-                      <SelectItem value="IVF Fertility Leads">IVF Fertility Leads</SelectItem>
-                      <SelectItem value="Eye Treatment Leads">Eye Treatment Leads</SelectItem>
-                      <SelectItem value="All Services Leads">All Services Leads</SelectItem>
+                      <SelectItem value="table2">Hair Transplant Leads</SelectItem>
+                      <SelectItem value="table3">Dental Treatment Leads</SelectItem>
+                      <SelectItem value="table4">Cosmetic Surgery Leads</SelectItem>
+                      <SelectItem value="table6">IVF Fertility Leads</SelectItem>
+                      <SelectItem value="table5">Eye Treatment Leads</SelectItem>
+                      <SelectItem value="table1">All Services Leads</SelectItem>
                     </SelectContent>
                   </Select>
                   {form.formState.errors.selected_sheet && (
