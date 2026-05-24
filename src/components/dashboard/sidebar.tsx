@@ -53,7 +53,15 @@ export function Sidebar() {
           Main Menu
         </p>
         {navItems.map(({ href, label, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(href + '/');
+          const isActive =
+            pathname === href ||
+            (pathname.startsWith(href + '/') &&
+              !navItems.some(
+                (other) =>
+                  other.href !== href &&
+                  other.href.length > href.length &&
+                  (pathname === other.href || pathname.startsWith(other.href + '/'))
+              ));
           return (
             <Link
               key={href}

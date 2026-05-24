@@ -24,12 +24,12 @@ interface ResetResult {
 type PageState = 'idle' | 'confirming' | 'loading' | 'success' | 'error';
 
 const TABLES = [
-  { value: 'all_service_leads',      label: 'All Services Leads' },
-  { value: 'hair_transplant_leads',  label: 'Hair Transplant Leads' },
-  { value: 'dental_treatment_leads', label: 'Dental Treatment Leads' },
-  { value: 'cosmic_surgery_leads',   label: 'Cosmetic Surgery Leads' },
-  { value: 'eye_treatment_leads',    label: 'Eye Treatment Leads' },
-  { value: 'ivf_fertility_leads',    label: 'IVF Fertility Leads' },
+  { value: 'table1', label: 'All Services Leads' },
+  { value: 'table2', label: 'Hair Transplant Leads' },
+  { value: 'table3', label: 'Dental Treatment Leads' },
+  { value: 'table4', label: 'Cosmetic Surgery Leads' },
+  { value: 'table5', label: 'Eye Treatment Leads' },
+  { value: 'table6', label: 'IVF Fertility Leads' },
 ];
 
 interface HistoryItem {

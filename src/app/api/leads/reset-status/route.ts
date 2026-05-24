@@ -4,21 +4,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
 
 const VALID_TABLES = [
-  'all_service_leads',
-  'hair_transplant_leads',
-  'dental_treatment_leads',
-  'cosmic_surgery_leads',
-  'eye_treatment_leads',
-  'ivf_fertility_leads',
+  'table1',
+  'table2',
+  'table3',
+  'table4',
+  'table5',
+  'table6',
 ];
 
 const DISPLAY_NAMES: Record<string, string> = {
-  all_service_leads:       'All Services Leads',
-  hair_transplant_leads:   'Hair Transplant Leads',
-  dental_treatment_leads:  'Dental Treatment Leads',
-  cosmic_surgery_leads:    'Cosmetic Surgery Leads',
-  eye_treatment_leads:     'Eye Treatment Leads',
-  ivf_fertility_leads:     'IVF Fertility Leads',
+  table1: 'All Services Leads',
+  table2: 'Hair Transplant Leads',
+  table3: 'Dental Treatment Leads',
+  table4: 'Cosmetic Surgery Leads',
+  table5: 'Eye Treatment Leads',
+  table6: 'IVF Fertility Leads',
 };
 
 export async function POST(req: NextRequest) {
