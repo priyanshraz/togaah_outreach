@@ -122,7 +122,7 @@ export default function OutreachAnalyticsPage() {
         description="Live campaign performance powered by Instantly.ai"
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 pb-16 space-y-6">
 
         {/* Refresh */}
         <div className="flex justify-end">

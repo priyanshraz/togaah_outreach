@@ -68,7 +68,7 @@ export default function ScraperHistoryPage() {
     <div>
       <Header title="Scraper History" description="All past Google Maps scraping runs" />
 
-      <div className="p-6 space-y-5">
+      <div className="p-6 pb-16 space-y-5">
         {/* Back + New Scrape */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" asChild className="text-gray-600 gap-2">

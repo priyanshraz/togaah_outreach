@@ -171,13 +171,13 @@ export default function NewCampaignPage() {
       {/* Full-screen loading overlay while n8n processes */}
       {isSubmitting && <LoadingOverlay elapsed={elapsed} />}
 
-      <div>
+      <div className="min-h-full">
         <Header
           title={isReuse ? 'Reuse Email' : 'New Email Message'}
           description={isReuse ? 'Pre-filled from previous campaign — edit and create new' : 'AI generates the email content — you review and approve before sending'}
         />
 
-        <div className="p-6 max-w-2xl mx-auto">
+        <div className="p-6 pb-16 max-w-2xl mx-auto">
           <div className="mb-6">
             <Button variant="ghost" onClick={() => router.back()} className="text-gray-600">
               <ArrowLeft className="mr-2 h-4 w-4" />

@@ -72,7 +72,7 @@ export default async function DashboardPage() {
     <div>
       <Header title="Dashboard" description="Overview of your automation workflows" />
 
-      <div className="p-6 space-y-6">
+      <div className="p-6 pb-16 space-y-6">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatsCard

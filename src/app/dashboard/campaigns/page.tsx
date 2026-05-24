@@ -308,7 +308,7 @@ export default function CampaignsPage() {
     <div>
       <Header title="Email Messages" description="Manage AI-generated email messages with in-dashboard approval" />
 
-      <div className="p-6 space-y-8">
+      <div className="p-6 pb-16 space-y-8">
         {/* New Email Message */}
         <div className="flex justify-end">
           <Button asChild className="bg-[#0077b6] hover:bg-[#005f8f] text-white">

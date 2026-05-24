@@ -9,7 +9,7 @@ export default function CleanupPage() {
         title="Contact Cleanup"
         description="Automatically remove old contacts from Instantly.ai every 10 days"
       />
-      <div className="p-6 space-y-6">
+      <div className="p-6 pb-16 space-y-6">
         <CleanupStatus />
         <CleanupHistory />
       </div>
