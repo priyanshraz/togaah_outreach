@@ -91,6 +91,14 @@ export default function NewCampaignPage() {
   const [elapsed, setElapsed] = useState(0);
   const [isReuse, setIsReuse] = useState(false);
   const reusedRef = useRef(false);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch('/api/leads/counts')
+      .then((r) => r.json())
+      .then((d) => setCounts(d.counts ?? {}))
+      .catch(() => {});
+  }, []);
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
@@ -260,12 +268,14 @@ export default function NewCampaignPage() {
                   <Select onValueChange={(v) => form.setValue('selected_sheet', v)} disabled={isSubmitting}>
                     <SelectTrigger><SelectValue placeholder="Select Table tab" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="table1">table1</SelectItem>
-                      <SelectItem value="table2">table2</SelectItem>
-                      <SelectItem value="table3">table3</SelectItem>
-                      <SelectItem value="table4">table4</SelectItem>
-                      <SelectItem value="table5">table5</SelectItem>
-                      <SelectItem value="table6">table6</SelectItem>
+                      {['table1','table2','table3','table4','table5','table6'].map((t) => (
+                        <SelectItem key={t} value={t}>
+                          <span className="font-medium">{t}</span>
+                          {counts[t] !== undefined && (
+                            <span className="ml-2 text-gray-400 text-xs">— {counts[t].toLocaleString()} leads</span>
+                          )}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   {form.formState.errors.selected_sheet && (

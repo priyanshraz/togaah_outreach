@@ -15,6 +15,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
+import { LocationAutocomplete } from '@/components/scraper/location-autocomplete';
 
 interface ScraperResult {
   total_scraped: number;
@@ -31,8 +32,6 @@ interface ApiResult {
 
 type PageState = 'form' | 'loading' | 'success' | 'error';
 
-// ─── Loading steps — clean messages ──────────────────────────────────────────
-
 const LOADING_STEPS = [
   { at: 0,   text: 'Sending request to workflow...' },
   { at: 8,   text: 'Starting lead search...' },
@@ -44,14 +43,7 @@ const LOADING_STEPS = [
   { at: 500, text: 'Almost done — wrapping up...' },
 ];
 
-const TABLES = [
-  { value: 'table1', label: 'table1' },
-  { value: 'table2', label: 'table2' },
-  { value: 'table3', label: 'table3' },
-  { value: 'table4', label: 'table4' },
-  { value: 'table5', label: 'table5' },
-  { value: 'table6', label: 'table6' },
-];
+const TABLE_KEYS = ['table1', 'table2', 'table3', 'table4', 'table5', 'table6'];
 
 export default function ScraperPage() {
   const { toast } = useToast();
@@ -63,10 +55,18 @@ export default function ScraperPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const [niches, setNiches] = useState('');
-  const [country, setCountry] = useState('');
-  const [location, setLocation] = useState('');
+  const [fullLocation, setFullLocation] = useState('');
   const [maxResults, setMaxResults] = useState('100');
   const [targetSheet, setTargetSheet] = useState('');
+
+  // Lead counts per table
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  useEffect(() => {
+    fetch('/api/leads/counts')
+      .then((r) => r.json())
+      .then((d) => setCounts(d.counts ?? {}))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (pageState !== 'loading') { setElapsed(0); return; }
@@ -84,13 +84,10 @@ export default function ScraperPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!niches.trim() || !country || !location.trim() || !targetSheet) {
-      toast({ title: 'Missing fields', description: 'Please fill in all required fields including Country.', variant: 'destructive' });
+    if (!niches.trim() || !fullLocation.trim() || !targetSheet) {
+      toast({ title: 'Missing fields', description: 'Please fill in all required fields.', variant: 'destructive' });
       return;
     }
-
-    // Combine country + location for the search query
-    const fullLocation = `${location.trim()}, ${country}`;
 
     setPageState('loading');
     setResult(null);
@@ -100,8 +97,8 @@ export default function ScraperPage() {
       const res = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niches: niches.trim(), location: fullLocation, country, max_results: Number(maxResults), target_sheet: targetSheet }),
-        signal: AbortSignal.timeout(620000), // 10+ min
+        body: JSON.stringify({ niches: niches.trim(), location: fullLocation.trim(), max_results: Number(maxResults), target_sheet: targetSheet }),
+        signal: AbortSignal.timeout(620000),
       });
 
       const data = await res.json();
@@ -192,48 +189,32 @@ export default function ScraperPage() {
                   <p className="text-xs text-gray-400 mt-1">Comma-separated list of business types</p>
                 </div>
 
-                {/* Country */}
+                {/* Location autocomplete */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Country <span className="text-red-500">*</span>
-                  </label>
-                  <Input
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    placeholder="e.g. United Kingdom, UAE, Canada"
+                  <LocationAutocomplete
+                    label="Location (City, Country)"
+                    value={fullLocation}
+                    onChange={setFullLocation}
+                    placeholder="e.g. London, United Kingdom"
                     disabled={pageState === 'loading'}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Type the target country</p>
+                  <p className="text-xs text-gray-400 mt-1">Type 2+ characters to search and select a location</p>
                 </div>
 
-                {/* Location + Max Results */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      City / State <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g. London, Dubai, Toronto"
-                      disabled={pageState === 'loading'}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">City or region within the country</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Max Results <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="number"
-                      min={10}
-                      max={500}
-                      value={maxResults}
-                      onChange={(e) => setMaxResults(e.target.value)}
-                      disabled={pageState === 'loading'}
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Max 500 per run</p>
-                  </div>
+                {/* Max Results */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Results <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    min={10}
+                    max={500}
+                    value={maxResults}
+                    onChange={(e) => setMaxResults(e.target.value)}
+                    disabled={pageState === 'loading'}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">Max 500 per run</p>
                 </div>
 
                 <div>
@@ -243,7 +224,14 @@ export default function ScraperPage() {
                   <Select onValueChange={setTargetSheet} disabled={pageState === 'loading'}>
                     <SelectTrigger><SelectValue placeholder="Select a lead table" /></SelectTrigger>
                     <SelectContent>
-                      {TABLES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                      {TABLE_KEYS.map((t) => (
+                        <SelectItem key={t} value={t}>
+                          <span className="font-medium">{t}</span>
+                          {counts[t] !== undefined && (
+                            <span className="ml-2 text-gray-400 text-xs">— {counts[t].toLocaleString()} leads</span>
+                          )}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -335,7 +323,7 @@ export default function ScraperPage() {
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setCountry(''); setLocation(''); setMaxResults('100'); setTargetSheet(''); }}>
+            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setFullLocation(''); setMaxResults('100'); setTargetSheet(''); }}>
               <Search className="mr-2 h-4 w-4" /> Scrape Again
             </Button>
             <Button variant="outline" asChild>
