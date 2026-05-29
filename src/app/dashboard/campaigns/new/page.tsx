@@ -120,7 +120,7 @@ export default function NewCampaignPage() {
       setIsReuse(true);
       // Reset form with old values
       form.reset({
-        campaign_name: data.campaign_name ? `${data.campaign_name} (Copy)` : '',
+        campaign_name: data.campaign_name ? data.campaign_name.replace(/(\s*\(Copy\))+$/i, '') : '',
         service_type: data.service_type ?? '',
         target_region: data.target_region ?? '',
         campaign_goal: data.campaign_goal ?? '',
