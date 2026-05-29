@@ -62,14 +62,6 @@ function pct(num: number, den: number): string {
   return `${((num / den) * 100).toFixed(1)}%`;
 }
 
-function StatusBadge({ status }: { status: number }) {
-  if (status === 1)  return <Badge variant="success">Active</Badge>;
-  if (status === 2)  return <Badge variant="warning">Paused</Badge>;
-  if (status === 3)  return <Badge variant="secondary">Completed</Badge>;
-  if (status === 0)  return <Badge variant="secondary">Draft</Badge>;
-  if (status === -1) return <Badge variant="secondary">Inactive</Badge>;
-  return <Badge variant="secondary">Status {status}</Badge>;
-}
 
 function StatCard({
   title, value, sub, icon: Icon, colorClass,
@@ -218,7 +210,7 @@ export default function OutreachAnalyticsPage() {
                     {campaigns.map((c) => (
                       <TableRow key={c.campaign_id} className="hover:bg-gray-50">
                         <TableCell>
-                          <p className="font-medium text-gray-900 max-w-[180px] truncate" title={c.campaign_name}>
+                          <p className="font-medium text-gray-900 whitespace-normal break-words">
                             {c.campaign_name}
                           </p>
                         </TableCell>
