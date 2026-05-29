@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import {
-  Search, CheckCircle, XCircle, HelpCircle, ArrowLeft,
-  ExternalLink, AlertCircle, Clock,
+  Search, CheckCircle, XCircle, ArrowLeft,
+  AlertCircle, Clock,
 } from 'lucide-react';
 import { Header } from '@/components/dashboard/header';
 import { Button } from '@/components/ui/button';
@@ -118,7 +118,7 @@ export default function ScraperHistoryPage() {
                 { label: 'Total Scraped', value: jobs.reduce((a, j) => a + j.totalScraped, 0).toLocaleString(), icon: Search },
                 { label: 'Verified Leads', value: jobs.reduce((a, j) => a + j.validEmails, 0).toLocaleString(), icon: CheckCircle },
                 { label: 'Invalid', value: jobs.reduce((a, j) => a + j.invalidEmails, 0).toLocaleString(), icon: XCircle },
-              ].map(({ label, value, icon: Icon }) => (
+              ].map(({ label, value }) => (
                 <Card key={label} className="text-center">
                   <CardContent className="pt-4 pb-3">
                     <p className="text-2xl font-bold text-gray-900">{value}</p>
@@ -142,7 +142,6 @@ export default function ScraperHistoryPage() {
                     <TableRow>
                       <TableHead>Niches</TableHead>
                       <TableHead>Location</TableHead>
-                      <TableHead>Sheet</TableHead>
                       <TableHead>
                         <span className="flex items-center gap-1">
                           <Search className="h-3 w-3" /> Total
@@ -162,21 +161,10 @@ export default function ScraperHistoryPage() {
                       <TableHead>Status</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Date</TableHead>
-                      <TableHead>Sheet</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {jobs.map((job) => {
-                      // Try to get sheet URL from outputData
-                      let sheetUrl: string | null = null;
-                      try {
-                        if (job.execution.outputData) {
-                          const out = JSON.parse(job.execution.outputData);
-                          sheetUrl = out?.sheet_info?.sheet_url ?? null;
-                        }
-                      } catch {}
-
-                      return (
+                    {jobs.map((job) => (
                         <TableRow key={job.id}>
                           <TableCell className="max-w-[140px]">
                             <p className="text-sm font-medium truncate" title={job.niches}>
@@ -184,9 +172,6 @@ export default function ScraperHistoryPage() {
                             </p>
                           </TableCell>
                           <TableCell className="text-sm">{job.location}</TableCell>
-                          <TableCell className="text-xs text-gray-500 max-w-[120px] truncate">
-                            {job.targetSheet}
-                          </TableCell>
                           <TableCell className="font-medium">{job.totalScraped}</TableCell>
                           <TableCell className="text-green-600 font-medium">{job.validEmails}</TableCell>
                           <TableCell className="text-red-500">{job.invalidEmails}</TableCell>
@@ -204,23 +189,8 @@ export default function ScraperHistoryPage() {
                           <TableCell className="text-sm text-gray-500 whitespace-nowrap">
                             {format(new Date(job.createdAt), 'MMM dd, HH:mm')}
                           </TableCell>
-                          <TableCell>
-                            {sheetUrl ? (
-                              <a
-                                href={sheetUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-[#0077b6] hover:underline"
-                              >
-                                <ExternalLink className="h-3 w-3" /> Open
-                              </a>
-                            ) : (
-                              <span className="text-xs text-gray-300">—</span>
-                            )}
-                          </TableCell>
                         </TableRow>
-                      );
-                    })}
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
