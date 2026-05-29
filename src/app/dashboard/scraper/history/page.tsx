@@ -166,8 +166,8 @@ export default function ScraperHistoryPage() {
                   <TableBody>
                     {jobs.map((job) => (
                         <TableRow key={job.id}>
-                          <TableCell className="max-w-[140px]">
-                            <p className="text-sm font-medium truncate" title={job.niches}>
+                          <TableCell>
+                            <p className="text-sm font-medium whitespace-normal break-words max-w-[200px]">
                               {job.niches}
                             </p>
                           </TableCell>
