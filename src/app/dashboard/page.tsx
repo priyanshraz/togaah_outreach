@@ -18,7 +18,6 @@ async function getDashboardData(userId: string) {
     const [
       totalCampaigns,
       scraperJobs,
-      cleanupLogs,
       recentExecutions,
       successCount,
       totalCount,
@@ -29,11 +28,6 @@ async function getDashboardData(userId: string) {
       prisma.scraperJob.aggregate({
         where: { execution: { userId } },
         _sum: { totalScraped: true, validEmails: true },
-      }),
-      prisma.cleanupLog.aggregate({
-        where: { execution: { userId } },
-        _sum: { deletedCount: true },
-        _count: true,
       }),
       prisma.workflowExecution.findMany({
         where: { userId },
@@ -68,8 +62,6 @@ async function getDashboardData(userId: string) {
       totalCampaigns,
       totalLeadsScraped: scraperJobs._sum.totalScraped ?? 0,
       validLeads: scraperJobs._sum.validEmails ?? 0,
-      totalCleanups: cleanupLogs._count ?? 0,
-      totalDeleted: cleanupLogs._sum.deletedCount ?? 0,
       successRate: totalCount > 0 ? Math.round((successCount / totalCount) * 100) : 0,
       recentExecutions,
       campaignsByMonth,
@@ -82,7 +74,7 @@ async function getDashboardData(userId: string) {
     console.error('getDashboardData error:', err);
     return {
       totalCampaigns: 0, totalLeadsScraped: 0, validLeads: 0,
-      totalCleanups: 0, totalDeleted: 0, successRate: 0,
+      successRate: 0,
       recentExecutions: [], campaignsByMonth: [], leadsBySheet: [],
     };
   }
@@ -108,7 +100,7 @@ export default async function DashboardPage() {
       <div className="p-4 pb-16 space-y-4 lg:p-6 lg:space-y-6">
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 lg:gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
           <StatsCard
             title="Total Email Templates Generated"
             value={stats.totalCampaigns}
@@ -122,13 +114,7 @@ export default async function DashboardPage() {
             icon={Search}
           />
           <StatsCard
-            title="Contacts Cleaned"
-            value={stats.totalDeleted.toLocaleString()}
-            subtitle={`${stats.totalCleanups} cleanup runs`}
-            icon={TrendingUp}
-          />
-          <StatsCard
-            title="Success Rate"
+            title="Workflows Success Rate"
             value={`${stats.successRate}%`}
             subtitle="Across all workflows"
             icon={TrendingUp}
