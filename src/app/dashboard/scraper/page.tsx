@@ -97,7 +97,7 @@ export default function ScraperPage() {
       const res = await fetch('/api/scraper', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niches: niches.trim(), location: fullLocation.trim(), max_results: Number(maxResults), target_sheet: targetSheet }),
+        body: JSON.stringify({ niches: niches.trim(), location: fullLocation.trim(), max_results: Math.min(500, Math.max(50, Number(maxResults) || 50)), target_sheet: targetSheet }),
         signal: AbortSignal.timeout(620000),
       });
 
@@ -208,13 +208,18 @@ export default function ScraperPage() {
                   </label>
                   <Input
                     type="number"
-                    min={10}
+                    min={50}
                     max={500}
                     value={maxResults}
                     onChange={(e) => setMaxResults(e.target.value)}
+                    onBlur={(e) => {
+                      const val = Number(e.target.value);
+                      if (!val || val < 50) setMaxResults('50');
+                      else if (val > 500) setMaxResults('500');
+                    }}
                     disabled={pageState === 'loading'}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Max 500 per run</p>
+                  <p className="text-xs text-gray-400 mt-1">Min 50 · Max 500 per run</p>
                 </div>
 
                 <div>
