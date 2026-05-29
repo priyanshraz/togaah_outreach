@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { SidebarContext } from './sidebar-context';
+import { NavProgress } from './nav-progress';
 
 export function MobileLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -38,6 +39,7 @@ export function MobileLayout({ children }: { children: React.ReactNode }) {
       toggleCollapse,
     }}>
       <div className="flex h-screen overflow-hidden">
+        <NavProgress />
 
         {/* Mobile overlay */}
         {open && (

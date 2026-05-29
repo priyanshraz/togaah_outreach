@@ -128,7 +128,9 @@ export default function CampaignsPage() {
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json() as Promise<{ campaigns: Campaign[] }>;
     },
-    refetchInterval: 5000,
+    // Only poll when no dialog is open — prevents re-render interrupting button actions
+    refetchInterval: dialogState === 'preview' && !selectedCampaign ? 10000 : false,
+    refetchOnWindowFocus: false,
   });
 
   // ── Dialog helpers ──────────────────────────────────────────────────────────
@@ -180,22 +182,6 @@ export default function CampaignsPage() {
   function handleRejectClick() {
     setRejectReason('');
     setDialogState('reject_form');
-  }
-
-  // Reject without regeneration (quick reject from list)
-  async function handleQuickRejectFinal(campaignId: string) {
-    try {
-      const res = await fetch('/api/campaigns/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaignId, decision: 'rejected', comments: 'Quick reject' }),
-      });
-      if (!res.ok) throw new Error('Failed');
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast({ title: 'Email rejected' });
-    } catch {
-      toast({ title: 'Error', description: 'Could not reject email', variant: 'destructive' });
-    }
   }
 
   // Reject + regenerate: mark old rejected, create new campaign via n8n
