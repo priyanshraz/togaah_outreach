@@ -78,8 +78,8 @@ export default async function AnalyticsPage() {
   return (
     <div>
       <Header title="Analytics" description="Performance metrics for all workflows" />
-      <div className="p-6 pb-16 space-y-6">
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="p-4 pb-16 space-y-4 lg:p-6 lg:space-y-6">
+        <div className="grid grid-cols-2 gap-3 lg:gap-4 lg:grid-cols-4">
           <StatsCard
             title="Total Campaigns"
             value={data.totalCampaigns}
@@ -106,7 +106,7 @@ export default async function AnalyticsPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
           <CampaignChart data={data.campaignsByMonth} />
           {data.leadsBySheet.length > 0 ? (
             <LeadChart data={data.leadsBySheet} />

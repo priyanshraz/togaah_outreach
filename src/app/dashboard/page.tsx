@@ -72,9 +72,9 @@ export default async function DashboardPage() {
     <div>
       <Header title="Dashboard" description="Overview of your automation workflows" />
 
-      <div className="p-6 pb-16 space-y-6">
+      <div className="p-4 pb-16 space-y-4 lg:p-6 lg:space-y-6">
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:gap-4 lg:grid-cols-4">
           <StatsCard
             title="Total Campaigns"
             value={stats.totalCampaigns}
@@ -105,7 +105,7 @@ export default async function DashboardPage() {
         <RecentExecutions initialExecutions={executions} />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
           {[
             {
               href: '/dashboard/campaigns/new',

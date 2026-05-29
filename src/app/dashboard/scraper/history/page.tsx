@@ -68,7 +68,7 @@ export default function ScraperHistoryPage() {
     <div>
       <Header title="Scraper History" description="All past Google Maps scraping runs" />
 
-      <div className="p-6 pb-16 space-y-5">
+      <div className="p-4 pb-16 space-y-4 lg:p-6 lg:space-y-5">
         {/* Back + New Scrape */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" asChild className="text-gray-600 gap-2">
@@ -112,7 +112,7 @@ export default function ScraperHistoryPage() {
         {/* Summary cards */}
         {!isLoading && jobs.length > 0 && (
           <>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:gap-4">
               {[
                 { label: 'Total Runs', value: jobs.length, icon: Search },
                 { label: 'Total Scraped', value: jobs.reduce((a, j) => a + j.totalScraped, 0).toLocaleString(), icon: Search },
@@ -136,8 +136,8 @@ export default function ScraperHistoryPage() {
                   All Scraper Runs ({jobs.length})
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
-                <Table>
+              <CardContent className="p-0 overflow-x-auto">
+                <Table className="min-w-[600px]">
                   <TableHeader>
                     <TableRow>
                       <TableHead>Niches</TableHead>
