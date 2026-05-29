@@ -10,7 +10,9 @@ export const metadata: Metadata = {
   title: 'Toga Automation Dashboard',
   description: 'Medical tourism outreach automation platform',
   icons: {
-    icon: 'https://admin.togahh.com/img/setting/01KE7GTXG885XMXHF6QRE0MPJZ.svg',
+    icon: 'https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg',
+    shortcut: 'https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg',
+    apple: 'https://res.cloudinary.com/dhnimveep/image/upload/v1778551521/WhatsApp_Image_2026-05-11_at_1.16.48_PM_w1wshg.jpg',
   },
 };
 
