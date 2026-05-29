@@ -56,6 +56,7 @@ export default function ScraperPage() {
 
   const [niches, setNiches] = useState('');
   const [fullLocation, setFullLocation] = useState('');
+  const [locationValid, setLocationValid] = useState(false);
   const [maxResults, setMaxResults] = useState('100');
   const [targetSheet, setTargetSheet] = useState('');
 
@@ -86,6 +87,10 @@ export default function ScraperPage() {
     e.preventDefault();
     if (!niches.trim() || !fullLocation.trim() || !targetSheet) {
       toast({ title: 'Missing fields', description: 'Please fill in all required fields.', variant: 'destructive' });
+      return;
+    }
+    if (!locationValid) {
+      toast({ title: 'Invalid location', description: 'Please select a location from the dropdown suggestions.', variant: 'destructive' });
       return;
     }
 
@@ -198,7 +203,7 @@ export default function ScraperPage() {
                   <LocationAutocomplete
                     label="Location (City, Country)"
                     value={fullLocation}
-                    onChange={setFullLocation}
+                    onChange={(val, valid) => { setFullLocation(val); setLocationValid(valid); }}
                     placeholder="e.g. London, United Kingdom"
                     disabled={pageState === 'loading'}
                   />
@@ -332,7 +337,7 @@ export default function ScraperPage() {
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setFullLocation(''); setMaxResults('100'); setTargetSheet(''); }}>
+            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setFullLocation(''); setLocationValid(false); setMaxResults('100'); setTargetSheet(''); }}>
               <Search className="mr-2 h-4 w-4" /> Scrape Again
             </Button>
             <Button variant="outline" asChild>

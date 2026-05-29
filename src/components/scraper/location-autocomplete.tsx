@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface NominatimResult {
   place_id: string;
@@ -20,7 +20,7 @@ interface NominatimResult {
 
 interface Props {
   value: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, isValid: boolean) => void;
   disabled?: boolean;
   placeholder?: string;
   label?: string;
@@ -32,6 +32,7 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [isSelected, setIsSelected] = useState(false); // true only when picked from dropdown
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +48,10 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (query.length < 2) { setResults([]); setOpen(false); setNotFound(false); return; }
+    if (query.length < 2) {
+      setResults([]); setOpen(false); setNotFound(false);
+      return;
+    }
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
@@ -72,16 +76,31 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
     return () => clearTimeout(debounceRef.current);
   }, [query]);
 
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // Block numbers entirely
+    const cleaned = e.target.value.replace(/[0-9]/g, '');
+    setQuery(cleaned);
+    setIsSelected(false);        // user is typing — no longer a valid selection
+    onChange(cleaned, false);
+    setNotFound(false);
+  }
+
   function handleSelect(r: NominatimResult) {
     const addr = r.address;
     const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || addr.state || '';
     const country = addr.country || '';
-    const locationStr = city && country ? `${city}, ${country}` : r.display_name.split(',').slice(0, 2).join(',').trim();
+    const locationStr = city && country
+      ? `${city}, ${country}`
+      : r.display_name.split(',').slice(0, 2).join(',').trim();
     setQuery(locationStr);
-    onChange(locationStr);
+    setIsSelected(true);
+    onChange(locationStr, true);
     setOpen(false);
     setResults([]);
+    setNotFound(false);
   }
+
+  const showError = query.length >= 2 && !loading && !isSelected && !open;
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -94,22 +113,17 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
         <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
         <Input
           value={query}
-          onChange={(e) => { setQuery(e.target.value); onChange(e.target.value); }}
+          onChange={handleInputChange}
           placeholder={placeholder || 'Search city or country...'}
           disabled={disabled}
-          className="pl-9 pr-8"
+          className={`pl-9 pr-9 ${showError ? 'border-red-400 focus-visible:ring-red-400' : isSelected ? 'border-green-400 focus-visible:ring-green-400' : ''}`}
         />
-        {loading && (
-          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
-        )}
+        {loading && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />}
+        {!loading && isSelected && <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />}
+        {!loading && showError && query.length > 0 && <AlertCircle className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />}
       </div>
 
-      {notFound && !loading && query.length >= 2 && (
-        <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-xl px-4 py-3">
-          <p className="text-sm text-gray-400">No location found for &quot;{query}&quot;</p>
-        </div>
-      )}
-
+      {/* Suggestions dropdown */}
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-xl max-h-64 overflow-auto">
           {results.map((r) => {
@@ -135,6 +149,21 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
             );
           })}
         </div>
+      )}
+
+      {/* Not found */}
+      {notFound && !loading && query.length >= 2 && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-red-100 bg-red-50 shadow-xl px-4 py-3 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+          <p className="text-sm text-red-500">No location found for &quot;{query}&quot; — try a different name</p>
+        </div>
+      )}
+
+      {/* Hint: must select from list */}
+      {showError && !notFound && query.length >= 2 && (
+        <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+          <AlertCircle className="h-3 w-3" /> Please select a location from the suggestions
+        </p>
       )}
     </div>
   );
