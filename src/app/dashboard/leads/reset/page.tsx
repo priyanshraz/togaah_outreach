@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   RefreshCw, AlertTriangle, CheckCircle, XCircle,
@@ -45,6 +45,14 @@ export default function ResetLeadStatusPage() {
   const [result, setResult] = useState<ResetResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [counts, setCounts] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    fetch('/api/leads/counts')
+      .then((r) => r.json())
+      .then((d) => setCounts(d.counts ?? {}))
+      .catch(() => {});
+  }, []);
 
   const selectedLabel = TABLES.find((t) => t.value === selectedTable)?.label ?? '';
 
@@ -122,7 +130,12 @@ export default function ResetLeadStatusPage() {
                 </SelectTrigger>
                 <SelectContent>
                   {TABLES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                    <SelectItem key={t.value} value={t.value}>
+                      <span className="font-medium">{t.label}</span>
+                      {counts[t.value] !== undefined && (
+                        <span className="ml-2 text-gray-400 text-xs">— {counts[t.value].toLocaleString()} leads</span>
+                      )}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

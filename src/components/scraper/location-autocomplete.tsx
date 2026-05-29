@@ -31,6 +31,7 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -46,10 +47,11 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
 
   useEffect(() => {
     clearTimeout(debounceRef.current);
-    if (query.length < 2) { setResults([]); setOpen(false); return; }
+    if (query.length < 2) { setResults([]); setOpen(false); setNotFound(false); return; }
 
     debounceRef.current = setTimeout(async () => {
       setLoading(true);
+      setNotFound(false);
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=6&addressdetails=1`,
@@ -58,8 +60,10 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
         const data: NominatimResult[] = await res.json();
         setResults(data);
         setOpen(data.length > 0);
+        setNotFound(data.length === 0);
       } catch {
         setResults([]);
+        setNotFound(true);
       } finally {
         setLoading(false);
       }
@@ -99,6 +103,12 @@ export function LocationAutocomplete({ value, onChange, disabled, placeholder, l
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-gray-400" />
         )}
       </div>
+
+      {notFound && !loading && query.length >= 2 && (
+        <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-xl px-4 py-3">
+          <p className="text-sm text-gray-400">No location found for &quot;{query}&quot;</p>
+        </div>
+      )}
 
       {open && results.length > 0 && (
         <div className="absolute z-50 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-xl max-h-64 overflow-auto">

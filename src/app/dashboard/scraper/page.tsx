@@ -182,11 +182,15 @@ export default function ScraperPage() {
                   </label>
                   <Input
                     value={niches}
-                    onChange={(e) => setNiches(e.target.value)}
+                    onChange={(e) => {
+                      // Strip digits — only allow letters, spaces, commas, hyphens
+                      const cleaned = e.target.value.replace(/[0-9]/g, '');
+                      setNiches(cleaned);
+                    }}
                     placeholder="e.g. hair clinic, dental clinic, cosmetic surgery"
                     disabled={pageState === 'loading'}
                   />
-                  <p className="text-xs text-gray-400 mt-1">Comma-separated list of business types</p>
+                  <p className="text-xs text-gray-400 mt-1">Business names only — no numbers allowed</p>
                 </div>
 
                 {/* Location autocomplete */}
