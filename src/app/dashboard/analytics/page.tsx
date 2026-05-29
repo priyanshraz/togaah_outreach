@@ -1,5 +1,4 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/getAuthUser';
 import { prisma } from '@/lib/prisma';
 import { Header } from '@/components/dashboard/header';
 import { StatsCard } from '@/components/dashboard/stats-card';
@@ -71,10 +70,10 @@ async function getAnalytics(userId: string) {
 }
 
 export default async function AnalyticsPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) return null;
+  const user = await getAuthUser();
+  if (!user) return null;
 
-  const data = await getAnalytics(session.user.id);
+  const data = await getAnalytics(user.id);
 
   return (
     <div>
