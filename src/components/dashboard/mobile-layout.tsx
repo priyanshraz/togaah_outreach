@@ -7,13 +7,36 @@ import { SidebarContext } from './sidebar-context';
 
 export function MobileLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
 
-  // Auto-close sidebar on route change (mobile nav)
+  // Restore collapsed state from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('sidebar_collapsed');
+    if (saved === 'true') setCollapsed(true);
+  }, []);
+
+  // Auto-close mobile sidebar on route change
   useEffect(() => { setOpen(false); }, [pathname]);
 
+  const toggleCollapse = () => {
+    setCollapsed((c) => {
+      const next = !c;
+      localStorage.setItem('sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const sidebarWidth = collapsed ? 'w-16' : 'w-64';
+
   return (
-    <SidebarContext.Provider value={{ toggle: () => setOpen((o) => !o), close: () => setOpen(false) }}>
+    <SidebarContext.Provider value={{
+      open,
+      toggle: () => setOpen((o) => !o),
+      close: () => setOpen(false),
+      collapsed,
+      toggleCollapse,
+    }}>
       <div className="flex h-screen overflow-hidden">
 
         {/* Mobile overlay */}
@@ -24,16 +47,17 @@ export function MobileLayout({ children }: { children: React.ReactNode }) {
           />
         )}
 
-        {/* Sidebar — slides in on mobile, always visible on lg+ */}
+        {/* Sidebar */}
         <div className={`
-          fixed inset-y-0 left-0 z-30 w-64 transition-transform duration-300 ease-in-out
-          lg:relative lg:z-auto lg:translate-x-0 lg:flex-shrink-0
+          fixed inset-y-0 left-0 z-30 flex-shrink-0 transition-all duration-300 ease-in-out
+          lg:relative lg:z-auto lg:translate-x-0
+          ${sidebarWidth}
           ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
           <Sidebar />
         </div>
 
-        {/* Main content */}
+        {/* Main content — auto-fills remaining width */}
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
         </div>
