@@ -9,7 +9,6 @@ import {
   Mail,
   Search,
   Trash2,
-  BarChart3,
   History,
   TrendingUp,
   RefreshCw,
@@ -23,7 +22,6 @@ const navItems = [
   { href: '/dashboard/scraper/history', label: 'Scraper History', icon: History },
   { href: '/dashboard/leads/reset', label: 'Reset Lead Status', icon: RefreshCw },
   { href: '/dashboard/cleanup', label: 'Cleanup', icon: Trash2 },
-  { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
 ];
 
 export function Sidebar() {
