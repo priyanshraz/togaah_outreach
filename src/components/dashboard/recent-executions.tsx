@@ -92,9 +92,8 @@ export function RecentExecutions({ initialExecutions }: { initialExecutions: Exe
           <div className="space-y-2">
             {executions.map((exec) => {
               // Show delete for ALL campaign executions (success, failed, pending)
-              const isCampaignExec = exec.workflowType === 'CAMPAIGN';
-              // Reuse only makes sense when AI content was generated (campaign record exists)
-              const canReuse = isCampaignExec && !!exec.campaignId;
+              // Reuse only for campaigns with AI content generated
+              const canReuse = exec.workflowType === 'CAMPAIGN' && !!exec.campaignId;
               const isDeleting = deletingId === exec.id;
               const isReusing = reusingId === exec.id;
 
@@ -141,20 +140,18 @@ export function RecentExecutions({ initialExecutions }: { initialExecutions: Exe
                       </Button>
                     )}
 
-                    {/* Delete — for ALL campaign executions including failed/pending */}
-                    {isCampaignExec && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isDeleting}
-                        onClick={() => handleDelete(exec)}
-                        className="h-7 px-2 text-xs text-red-500 border-red-200 hover:bg-red-50 gap-1"
-                        title="Delete this campaign"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Delete
-                      </Button>
-                    )}
+                    {/* Delete — shown for ALL execution types */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={isDeleting}
+                      onClick={() => handleDelete(exec)}
+                      className="h-7 px-2 text-xs text-red-500 border-red-200 hover:bg-red-50 gap-1"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      {isDeleting ? '...' : 'Delete'}
+                    </Button>
                   </div>
                 </div>
               );

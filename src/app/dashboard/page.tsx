@@ -5,7 +5,7 @@ import { StatsCard } from '@/components/dashboard/stats-card';
 import { RecentExecutions, type ExecutionItem } from '@/components/dashboard/recent-executions';
 import { CampaignChart } from '@/components/analytics/campaign-chart';
 import { LeadChart } from '@/components/analytics/lead-chart';
-import { Mail, Search, Trash2, TrendingUp } from 'lucide-react';
+import { Mail, Search, TrendingUp } from 'lucide-react';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 
 async function getDashboardData(userId: string) {
@@ -125,7 +125,7 @@ export default async function DashboardPage() {
             title="Contacts Cleaned"
             value={stats.totalDeleted.toLocaleString()}
             subtitle={`${stats.totalCleanups} cleanup runs`}
-            icon={Trash2}
+            icon={TrendingUp}
           />
           <StatsCard
             title="Success Rate"
@@ -151,11 +151,10 @@ export default async function DashboardPage() {
         <RecentExecutions initialExecutions={executions} />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:gap-4">
           {[
-            { href: '/dashboard/campaigns/new', icon: Mail,   title: 'New Campaign',  desc: 'AI-generate & send emails',        color: 'bg-blue-50 border-blue-200' },
-            { href: '/dashboard/scraper',       icon: Search, title: 'Scrape Leads',  desc: 'Find leads on Google Maps',         color: 'bg-green-50 border-green-200' },
-            { href: '/dashboard/cleanup',       icon: Trash2, title: 'Run Cleanup',   desc: 'Remove old Instantly contacts',     color: 'bg-red-50 border-red-200' },
+            { href: '/dashboard/campaigns/new', icon: Mail,   title: 'New Campaign', desc: 'AI-generate & send emails',  color: 'bg-blue-50 border-blue-200' },
+            { href: '/dashboard/scraper',       icon: Search, title: 'Scrape Leads', desc: 'Find leads on Google Maps',  color: 'bg-green-50 border-green-200' },
           ].map(({ href, icon: Icon, title, desc, color }) => (
             <a key={href} href={href} className={`flex items-center gap-4 rounded-xl border-2 p-5 transition-all hover:shadow-md ${color}`}>
               <div className="rounded-xl bg-white p-3 shadow-sm">

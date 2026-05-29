@@ -6,19 +6,18 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSidebar } from './sidebar-context';
 import {
-  LayoutDashboard, Mail, Search, Trash2,
+  LayoutDashboard, Mail, Search,
   History, TrendingUp, RefreshCw,
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 
 const navItems = [
-  { href: '/dashboard',               label: 'Dashboard',         icon: LayoutDashboard },
-  { href: '/dashboard/campaigns',     label: 'Email Messages',    icon: Mail },
-  { href: '/dashboard/outreach',      label: 'Outreach Analytics',icon: TrendingUp },
-  { href: '/dashboard/scraper',       label: 'Lead Scraper',      icon: Search },
-  { href: '/dashboard/scraper/history', label: 'Scraper History', icon: History },
-  { href: '/dashboard/leads/reset',   label: 'Reset Lead Status', icon: RefreshCw },
-  { href: '/dashboard/cleanup',       label: 'Cleanup',           icon: Trash2 },
+  { href: '/dashboard',                 label: 'Dashboard',          icon: LayoutDashboard },
+  { href: '/dashboard/campaigns',       label: 'Email Messages',     icon: Mail },
+  { href: '/dashboard/outreach',        label: 'Outreach Analytics', icon: TrendingUp },
+  { href: '/dashboard/scraper',         label: 'Lead Scraper',       icon: Search },
+  { href: '/dashboard/scraper/history', label: 'Scraper History',    icon: History },
+  { href: '/dashboard/leads/reset',     label: 'Reset Lead Status',  icon: RefreshCw },
 ];
 
 export function Sidebar() {
