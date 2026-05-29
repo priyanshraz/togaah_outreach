@@ -54,11 +54,24 @@ export default function ScraperPage() {
   const [result, setResult] = useState<ApiResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const [niches, setNiches] = useState('');
-  const [fullLocation, setFullLocation] = useState('');
-  const [locationValid, setLocationValid] = useState(false);
-  const [maxResults, setMaxResults] = useState('100');
-  const [targetSheet, setTargetSheet] = useState('');
+  const STORAGE_KEY = 'scraper_form';
+
+  // Restore form from sessionStorage on mount
+  const saved = typeof window !== 'undefined'
+    ? (() => { try { return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; } })()
+    : {};
+
+  const [niches, setNiches] = useState<string>(saved.niches ?? '');
+  const [fullLocation, setFullLocation] = useState<string>(saved.fullLocation ?? '');
+  const [locationValid, setLocationValid] = useState<boolean>(saved.locationValid ?? false);
+  const [maxResults, setMaxResults] = useState<string>(saved.maxResults ?? '100');
+  const [targetSheet, setTargetSheet] = useState<string>(saved.targetSheet ?? '');
+
+  // Persist form to sessionStorage whenever any field changes
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ niches, fullLocation, locationValid, maxResults, targetSheet }));
+  }, [niches, fullLocation, locationValid, maxResults, targetSheet]);
 
   // Lead counts per table
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -111,6 +124,7 @@ export default function ScraperPage() {
 
       setResult(data);
       setPageState('success');
+      sessionStorage.removeItem(STORAGE_KEY); // clear saved form on success
       queryClient.invalidateQueries({ queryKey: ['scraper-jobs'] });
       toast({ title: '✅ Scraping complete!', description: `${data.result?.total_saved ?? 0} leads saved.` });
 
@@ -337,7 +351,7 @@ export default function ScraperPage() {
           </Card>
 
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setFullLocation(''); setLocationValid(false); setMaxResults('100'); setTargetSheet(''); }}>
+            <Button variant="outline" onClick={() => { setPageState('form'); setNiches(''); setFullLocation(''); setLocationValid(false); setMaxResults('100'); setTargetSheet(''); sessionStorage.removeItem(STORAGE_KEY); }}>
               <Search className="mr-2 h-4 w-4" /> Scrape Again
             </Button>
             <Button variant="outline" asChild>
