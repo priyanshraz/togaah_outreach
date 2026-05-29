@@ -202,7 +202,6 @@ export default function OutreachAnalyticsPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Campaign</TableHead>
-                      <TableHead>Status</TableHead>
                       <TableHead><span className="flex items-center gap-1"><Users className="h-3 w-3"/>Leads</span></TableHead>
                       <TableHead><span className="flex items-center gap-1"><Mail className="h-3 w-3"/>Contacted</span></TableHead>
                       <TableHead><span className="flex items-center gap-1"><Mail className="h-3 w-3"/>Sent</span></TableHead>
@@ -223,7 +222,6 @@ export default function OutreachAnalyticsPage() {
                             {c.campaign_name}
                           </p>
                         </TableCell>
-                        <TableCell><StatusBadge status={c.campaign_status} /></TableCell>
                         <TableCell className="font-medium">{c.leads_count.toLocaleString()}</TableCell>
                         <TableCell>{c.contacted_count.toLocaleString()}</TableCell>
                         <TableCell className="font-medium">{c.emails_sent_count.toLocaleString()}</TableCell>
