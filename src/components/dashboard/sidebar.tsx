@@ -30,9 +30,9 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full w-64 flex-col bg-[#1a1a2e] text-white">
-      {/* Logo */}
-      <div className="flex h-16 items-center justify-center border-b border-white/10 px-6">
+    <div className="flex h-full w-64 flex-col bg-[#1a1a2e] text-white overflow-hidden">
+      {/* Logo — always pinned at top */}
+      <div className="flex-shrink-0 flex h-16 items-center justify-center border-b border-white/10 px-6">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="relative h-9 w-9 flex-shrink-0">
             <Image
@@ -47,8 +47,8 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-6">
+      {/* Navigation — scrolls internally if items overflow */}
+      <nav className="flex-1 overflow-y-auto space-y-1 px-3 py-6">
         <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-white/40">
           Main Menu
         </p>
