@@ -294,7 +294,7 @@ export default function CampaignsPage() {
     <div>
       <Header title="Email Messages" description="Manage AI-generated email messages with in-dashboard approval" />
 
-      <div className="p-6 pb-16 space-y-8">
+      <div className="p-3 pb-16 space-y-6 sm:p-6 sm:space-y-8">
         {/* New Email Message */}
         <div className="flex justify-end">
           <Button asChild className="bg-[#0077b6] hover:bg-[#005f8f] text-white">
@@ -359,9 +359,9 @@ export default function CampaignsPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
-                        className="flex-1 bg-[#0077b6] hover:bg-[#005f8f] text-white"
+                        className="flex-1 min-w-[140px] bg-[#0077b6] hover:bg-[#005f8f] text-white"
                         onClick={() => openReview(campaign)}
                       >
                         <Eye className="mr-2 h-4 w-4" /> Review &amp; Approve
@@ -376,7 +376,6 @@ export default function CampaignsPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        title="Delete campaign"
                         disabled={deletingId === campaign.id}
                         onClick={() => handleDelete(campaign.id, campaign.campaignName)}
                         className="border-red-200 text-red-500 hover:bg-red-50"
@@ -412,49 +411,42 @@ export default function CampaignsPage() {
               {completed.map((campaign) => (
                 <Card key={campaign.id} className="hover:shadow-sm transition-shadow">
                   <CardHeader className="py-3 px-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{campaign.campaignName}</p>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
-                          <span>{campaign.serviceType.replace('_', ' ')}</span>·
-                          <span>{campaign.targetRegion}</span>·
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                      {/* Name + meta */}
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 break-words">{campaign.campaignName}</p>
+                        <div className="mt-1 flex flex-wrap gap-1 text-xs text-gray-500">
+                          <span>{campaign.serviceType.replace('_', ' ')}</span>
+                          <span>·</span>
+                          <span>{campaign.targetRegion}</span>
+                          <span>·</span>
                           <span>{format(new Date(campaign.createdAt), 'MMM dd, yyyy')}</span>
                         </div>
                         {campaign.status === 'REJECTED' && campaign.rejectionReason && (
-                          <p className="mt-1 text-xs text-red-500">
-                            Reason: {campaign.rejectionReason}
-                          </p>
+                          <p className="mt-1 text-xs text-red-500">Reason: {campaign.rejectionReason}</p>
                         )}
                       </div>
 
                       {/* Status + Action buttons */}
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <StatusBadge status={campaign.status} />
-
-                        {/* Reuse button */}
                         <Button
                           variant="outline"
                           size="sm"
-                          title="Reuse this campaign"
                           disabled={reusingId === campaign.id}
                           onClick={() => handleReuse(campaign.id)}
                           className="text-[#0077b6] border-[#0077b6]/30 hover:bg-[#0077b6]/5 gap-1.5"
                         >
-                          <Copy className="h-3.5 w-3.5" />
-                          Reuse
+                          <Copy className="h-3.5 w-3.5" /> Reuse
                         </Button>
-
-                        {/* Delete button */}
                         <Button
                           variant="outline"
                           size="sm"
-                          title="Delete campaign"
                           disabled={deletingId === campaign.id}
                           onClick={() => handleDelete(campaign.id, campaign.campaignName)}
                           className="text-red-500 border-red-200 hover:bg-red-50 gap-1.5"
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          Delete
+                          <Trash2 className="h-3.5 w-3.5" /> Delete
                         </Button>
                       </div>
                     </div>
