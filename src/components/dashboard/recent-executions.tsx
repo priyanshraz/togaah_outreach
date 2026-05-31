@@ -100,11 +100,11 @@ export function RecentExecutions({ initialExecutions }: { initialExecutions: Exe
               return (
                 <div
                   key={exec.id}
-                  className="flex items-center justify-between rounded-lg border bg-gray-50 px-4 py-3 gap-3"
+                  className="flex flex-col gap-2 rounded-lg border bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  {/* Icon + name */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#0077b6]/10">
+                  {/* Icon + name + time */}
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[#0077b6]/10 mt-0.5">
                       {exec.workflowType === 'CAMPAIGN' && <Mail className="h-4 w-4 text-[#0077b6]" />}
                       {exec.workflowType === 'SCRAPER' && <Search className="h-4 w-4 text-[#0077b6]" />}
                       {(exec.workflowType === 'CLEANUP' || exec.workflowType === 'CAMPAIGN_APPROVAL') && (
@@ -112,42 +112,31 @@ export function RecentExecutions({ initialExecutions }: { initialExecutions: Exe
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-gray-900 break-words">
                         {exec.workflowName || exec.workflowType}
                       </p>
                       <p className="text-xs text-gray-500">{formatRelativeTime(exec.createdAt)}</p>
                     </div>
                   </div>
 
-                  {/* Right side: status + actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  {/* Status + actions */}
+                  <div className="flex items-center gap-2 flex-wrap flex-shrink-0 pl-11 sm:pl-0">
                     <Badge variant={statusColors[exec.status] ?? 'secondary'}>
                       {exec.status}
                     </Badge>
-
-                    {/* Reuse — only for campaigns with AI content */}
                     {canReuse && (
                       <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={isReusing}
+                        size="sm" variant="outline" disabled={isReusing}
                         onClick={() => handleReuse(exec)}
                         className="h-7 px-2 text-xs text-[#0077b6] border-[#0077b6]/30 hover:bg-[#0077b6]/5 gap-1"
-                        title="Reuse this campaign"
                       >
-                        <Copy className="h-3 w-3" />
-                        Reuse
+                        <Copy className="h-3 w-3" /> Reuse
                       </Button>
                     )}
-
-                    {/* Delete — shown for ALL execution types */}
                     <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={isDeleting}
+                      size="sm" variant="outline" disabled={isDeleting}
                       onClick={() => handleDelete(exec)}
                       className="h-7 px-2 text-xs text-red-500 border-red-200 hover:bg-red-50 gap-1"
-                      title="Delete"
                     >
                       <Trash2 className="h-3 w-3" />
                       {isDeleting ? '...' : 'Delete'}

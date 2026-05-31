@@ -179,7 +179,7 @@ export default function ScraperPage() {
           </div>
         )}
 
-        <div className="p-6 pb-16 max-w-2xl mx-auto">
+        <div className="p-6 pb-28 max-w-2xl mx-auto">
           <div className="flex justify-end mb-4">
             <Button variant="outline" asChild className="gap-2 text-sm">
               <Link href="/dashboard/scraper/history">
@@ -296,7 +296,7 @@ export default function ScraperPage() {
     return (
       <div>
         <Header title="Lead Scraper" description="Scraping completed successfully" />
-        <div className="p-6 pb-16 max-w-2xl mx-auto space-y-6">
+        <div className="p-6 pb-28 max-w-2xl mx-auto space-y-6">
 
           <div className="flex flex-col items-center text-center py-4">
             <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-3">

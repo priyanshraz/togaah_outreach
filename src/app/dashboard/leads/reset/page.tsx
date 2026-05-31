@@ -102,7 +102,7 @@ export default function ResetLeadStatusPage() {
         description="Clear the sent status of leads in any table so they become available for new campaigns"
       />
 
-      <div className="p-6 pb-16 space-y-6 max-w-2xl mx-auto">
+      <div className="p-6 pb-28 space-y-6 max-w-2xl mx-auto">
         <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">

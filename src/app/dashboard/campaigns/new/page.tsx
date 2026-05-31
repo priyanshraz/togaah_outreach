@@ -185,7 +185,7 @@ export default function NewCampaignPage() {
           description={isReuse ? 'Pre-filled from previous campaign — edit and create new' : 'AI generates the email content — you review and approve before sending'}
         />
 
-        <div className="p-6 pb-16 max-w-2xl mx-auto">
+        <div className="p-6 pb-28 max-w-2xl mx-auto">
           <div className="mb-6">
             <Button variant="ghost" onClick={() => router.back()} className="text-gray-600">
               <ArrowLeft className="mr-2 h-4 w-4" />

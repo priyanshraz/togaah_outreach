@@ -97,7 +97,7 @@ export default async function DashboardPage() {
     <div>
       <Header title="Dashboard" description="Overview of your automation workflows" />
 
-      <div className="p-4 pb-16 space-y-4 lg:p-6 lg:space-y-6">
+      <div className="p-4 pb-28 space-y-4 lg:p-6 lg:space-y-6">
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:gap-4">
