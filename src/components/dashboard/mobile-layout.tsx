@@ -28,7 +28,7 @@ export function MobileLayout({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const sidebarWidth = collapsed ? 'w-16' : 'w-64';
+  const desktopWidth = collapsed ? 'w-16' : 'w-64';
 
   return (
     <SidebarContext.Provider value={{
@@ -41,25 +41,31 @@ export function MobileLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen overflow-hidden">
         <NavProgress />
 
-        {/* Mobile overlay */}
+        {/* ── MOBILE sidebar — fixed overlay, not in flex flow ── */}
+        {/* Dark backdrop */}
         {open && (
           <div
             className="fixed inset-0 z-20 bg-black/50 lg:hidden"
             onClick={() => setOpen(false)}
           />
         )}
-
-        {/* Sidebar */}
+        {/* Slide-in panel */}
         <div className={`
-          fixed inset-y-0 left-0 z-30 flex-shrink-0 transition-all duration-300 ease-in-out
-          lg:relative lg:z-auto lg:translate-x-0
-          ${sidebarWidth}
-          ${open ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          fixed inset-y-0 left-0 z-30 w-64 transition-transform duration-300 ease-in-out lg:hidden
+          ${open ? 'translate-x-0' : '-translate-x-full'}
         `}>
           <Sidebar />
         </div>
 
-        {/* Main content — auto-fills remaining width */}
+        {/* ── DESKTOP sidebar — in flex flow, always visible ── */}
+        <div className={`
+          hidden lg:block flex-shrink-0 transition-all duration-300 ease-in-out
+          ${desktopWidth}
+        `}>
+          <Sidebar />
+        </div>
+
+        {/* ── Main content — always full width on mobile ── */}
         <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
           <main className="flex-1 overflow-y-auto bg-gray-50">{children}</main>
         </div>
