@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, ArrowLeft, Sparkles, Clock, Copy } from 'lucide-react';
+import { ArrowLeft, Sparkles, Copy } from 'lucide-react';
+import { useBackgroundTasks } from '@/components/background-tasks/background-task-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -87,8 +88,8 @@ function LoadingOverlay({ elapsed }: { elapsed: number }) {
 export default function NewCampaignPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { startTask } = useBackgroundTasks();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
   const [isReuse, setIsReuse] = useState(false);
   const reusedRef = useRef(false);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -135,50 +136,35 @@ export default function NewCampaignPage() {
     }
   }, [form]);
 
-  // Tick the elapsed counter while submitting
-  useEffect(() => {
-    if (!isSubmitting) { setElapsed(0); return; }
-    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [isSubmitting]);
-
   const onSubmit = async (data: CampaignFormData) => {
     setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
 
-      const result = await response.json();
+    // Navigate away immediately — task runs in background
+    router.push('/dashboard/campaigns');
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create campaign');
-      }
+    startTask('CAMPAIGN', {
+      name: data.campaign_name,
+      estimatedSeconds: 120,
+      run: async () => {
+        const response = await fetch('/api/campaigns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Failed to create campaign');
+        return { message: '✅ Email generated! Review and approve it to send.' };
+      },
+    });
 
-      toast({
-        title: '✅ Email created successfully!',
-        description: 'AI content generated. Review and approve it to send emails.',
-      });
-
-      router.push('/dashboard/campaigns');
-
-    } catch (error: unknown) {
-      setIsSubmitting(false);
-      toast({
-        title: 'Email creation failed',
-        description: error instanceof Error ? error.message : 'Something went wrong. Please try again.',
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: '⚡ Generating email in background',
+      description: 'You can browse freely — we\'ll notify you when done.',
+    });
   };
 
   return (
     <>
-      {/* Full-screen loading overlay while n8n processes */}
-      {isSubmitting && <LoadingOverlay elapsed={elapsed} />}
-
       <div className="min-h-full">
         <Header
           title={isReuse ? 'Reuse Email' : 'New Email Message'}

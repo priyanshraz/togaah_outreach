@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { LocationAutocomplete } from '@/components/scraper/location-autocomplete';
+import { useBackgroundTasks } from '@/components/background-tasks/background-task-context';
+import { useRouter } from 'next/navigation';
 
 interface ScraperResult {
   total_scraped: number;
@@ -53,6 +55,8 @@ export default function ScraperPage() {
   const [elapsed, setElapsed] = useState(0);
   const [result, setResult] = useState<ApiResult | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const { startTask } = useBackgroundTasks();
+  const router = useRouter();
 
   const STORAGE_KEY = 'scraper_form';
 
@@ -107,32 +111,39 @@ export default function ScraperPage() {
       return;
     }
 
-    setPageState('loading');
-    setResult(null);
-    setErrorMsg('');
+    const payload = {
+      niches: niches.trim(),
+      location: fullLocation.trim(),
+      max_results: Math.min(500, Math.max(50, Number(maxResults) || 50)),
+      target_sheet: targetSheet,
+    };
 
-    try {
-      const res = await fetch('/api/scraper', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ niches: niches.trim(), location: fullLocation.trim(), max_results: Math.min(500, Math.max(50, Number(maxResults) || 50)), target_sheet: targetSheet }),
-        signal: AbortSignal.timeout(620000),
-      });
+    // Navigate away immediately — scraper runs in background
+    sessionStorage.removeItem(STORAGE_KEY);
+    router.push('/dashboard/scraper/history');
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Scraper failed');
+    startTask('SCRAPER', {
+      name: `${fullLocation} — ${niches}`,
+      estimatedSeconds: 480,
+      run: async () => {
+        const res = await fetch('/api/scraper', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(620000),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Scraper failed');
+        queryClient.invalidateQueries({ queryKey: ['scraper-jobs'] });
+        const saved = data.result?.total_saved ?? 0;
+        return { message: `✅ ${saved} leads saved to ${targetSheet}` };
+      },
+    });
 
-      setResult(data);
-      setPageState('success');
-      sessionStorage.removeItem(STORAGE_KEY); // clear saved form on success
-      queryClient.invalidateQueries({ queryKey: ['scraper-jobs'] });
-      toast({ title: '✅ Scraping complete!', description: `${data.result?.total_saved ?? 0} leads saved.` });
-
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Unknown error');
-      setPageState('error');
-      toast({ title: 'Scraper failed', description: err instanceof Error ? err.message : 'Try again.', variant: 'destructive' });
-    }
+    toast({
+      title: '⚡ Scraping in background',
+      description: 'You can browse freely — we\'ll notify you when done.',
+    });
   }
 
   // ── FORM + LOADING ────────────────────────────────────────────────────────
