@@ -7,16 +7,17 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import {
   Plus, CheckCircle, XCircle, Clock, Eye, Mail, AlertCircle,
-  Send, PartyPopper, RotateCcw, Trash2, Copy,
+  Send, PartyPopper, RotateCcw, Trash2, Copy, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Header } from '@/components/dashboard/header';
+import { useBackgroundTasks } from '@/components/background-tasks/background-task-context';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -102,10 +103,61 @@ const APPROVAL_STEPS = [
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+// ── Inline progress card — matches the green "Generating..." style ──────────
+function GeneratingCard({ name, startTime }: { name: string; startTime: number }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startTime]);
+  const pct = Math.min(Math.round((elapsed / 120) * 92), 92);
+
+  return (
+    <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4 space-y-2">
+      {/* Top row: spinner + title + % + Dismiss */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          {/* Spinning circle — CSS only, matches the screenshot */}
+          <svg className="h-5 w-5 animate-spin text-green-600 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <span className="font-bold text-green-800 text-sm truncate">
+            Generating your email — <span className="font-normal text-green-700">{name}</span>
+          </span>
+        </div>
+        <span className="text-sm font-bold text-green-700 flex-shrink-0">{pct}%</span>
+      </div>
+
+      {/* Green progress bar */}
+      <div className="h-2 w-full rounded-full bg-green-200 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-green-500 transition-all duration-1000 ease-linear"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <p className="text-xs text-green-600">
+        You can freely navigate — we&apos;ll notify you when done.
+      </p>
+    </div>
+  );
+}
+
 export default function CampaignsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const router = useRouter();
+  const { tasks } = useBackgroundTasks();
+
+  // Running campaign generation tasks — shown inline as progress cards
+  const generatingTasks = tasks.filter((t) => t.type === 'CAMPAIGN' && t.status === 'running');
+
+  // When a campaign task completes, refresh the list automatically
+  useEffect(() => {
+    const done = tasks.filter((t) => t.type === 'CAMPAIGN' && t.status === 'success');
+    if (done.length > 0) queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+  }, [tasks, queryClient]);
 
   const [selectedCampaign, setSelectedCampaign]   = useState<Campaign | null>(null);
   const [comments, setComments]                   = useState('');
@@ -314,6 +366,26 @@ export default function CampaignsPage() {
           <div className="flex items-center gap-2 text-red-600 justify-center py-8">
             <AlertCircle className="h-5 w-5" /> Failed to load campaigns
           </div>
+        )}
+
+        {/* ── Generating cards (background tasks in progress) ── */}
+        {generatingTasks.length > 0 && (
+          <section className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-[#0077b6] animate-pulse" />
+              <h2 className="text-lg font-semibold text-gray-900">
+                Pending Approval
+                <span className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-sm font-medium text-blue-700">
+                  {generatingTasks.length}
+                </span>
+              </h2>
+            </div>
+            <div className="grid gap-4">
+              {generatingTasks.map((task) => (
+                <GeneratingCard key={task.id} name={task.name} startTime={task.startTime} />
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Pending Approvals */}
