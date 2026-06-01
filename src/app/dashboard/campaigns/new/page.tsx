@@ -304,13 +304,8 @@ export default function NewCampaignPage() {
               type="submit"
               className="w-full bg-[#0077b6] hover:bg-[#005f8f] text-white"
               size="lg"
-              
             >
-              {isSubmitting ? (
-                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating AI Content...</>
-              ) : (
-                <><Sparkles className="mr-2 h-5 w-5" /> Create Campaign &amp; Generate Content</>
-              )}
+              <Sparkles className="mr-2 h-5 w-5" /> Create Campaign &amp; Generate Content
             </Button>
           </form>
         </div>
