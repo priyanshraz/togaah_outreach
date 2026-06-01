@@ -332,27 +332,27 @@ export default function CampaignsPage() {
             <div className="grid gap-4">
               {pending.map((campaign) => (
                 <Card key={campaign.id} className="border-l-4 border-l-amber-400 shadow-sm">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-base">{campaign.campaignName}</CardTitle>
-                        <CardDescription className="mt-1 flex gap-2 text-xs">
-                          <span>{campaign.serviceType.replace('_', ' ')}</span>·
-                          <span>{campaign.targetRegion}</span>·
-                          <span>{campaign.selectedSheet}</span>
-                        </CardDescription>
+                  <CardHeader className="px-4 pt-3 pb-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <CardTitle className="text-sm font-semibold leading-snug">{campaign.campaignName}</CardTitle>
+                        <div className="mt-0.5 flex flex-wrap gap-1 text-xs text-gray-500">
+                          <span>{campaign.serviceType.replace('_', ' ')}</span>
+                          <span>·</span><span>{campaign.targetRegion}</span>
+                          <span>·</span><span>{campaign.selectedSheet}</span>
+                        </div>
                       </div>
-                      <StatusBadge status={campaign.status} />
+                      <div className="flex-shrink-0"><StatusBadge status={campaign.status} /></div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-3">
+                  <CardContent className="px-4 pb-3 space-y-2">
                     {campaign.aiGeneratedContent?.subject_line && (
-                      <div className="rounded-lg bg-gray-50 border px-4 py-3 text-sm">
-                        <p className="font-medium text-gray-800">
+                      <div className="rounded-md bg-gray-50 border px-3 py-2 text-xs">
+                        <p className="font-medium text-gray-800 line-clamp-1">
                           ✉️ {campaign.aiGeneratedContent.subject_line}
                         </p>
                         {campaign.aiGeneratedContent.preview_text && (
-                          <p className="mt-1 text-gray-500 text-xs line-clamp-2">
+                          <p className="mt-0.5 text-gray-500 line-clamp-1">
                             {campaign.aiGeneratedContent.preview_text}
                           </p>
                         )}
@@ -361,30 +361,32 @@ export default function CampaignsPage() {
 
                     <div className="flex flex-wrap gap-2">
                       <Button
-                        className="flex-1 min-w-[140px] bg-[#0077b6] hover:bg-[#005f8f] text-white"
+                        size="sm"
+                        className="flex-1 min-w-[120px] bg-[#0077b6] hover:bg-[#005f8f] text-white"
                         onClick={() => openReview(campaign)}
                       >
-                        <Eye className="mr-2 h-4 w-4" /> Review &amp; Approve
+                        <Eye className="mr-1.5 h-3.5 w-3.5" /> Review &amp; Approve
                       </Button>
                       <Button
+                        size="sm"
                         variant="outline"
                         className="border-red-200 text-red-600 hover:bg-red-50"
                         onClick={() => handleQuickReject(campaign.id)}
                       >
-                        <XCircle className="mr-2 h-4 w-4" /> Reject
+                        <XCircle className="mr-1.5 h-3.5 w-3.5" /> Reject
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
+                        className="h-8 w-8 border-red-200 text-red-500 hover:bg-red-50"
                         disabled={deletingId === campaign.id}
                         onClick={() => handleDelete(campaign.id, campaign.campaignName)}
-                        className="border-red-200 text-red-500 hover:bg-red-50"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
 
-                    <p className="text-center text-xs text-gray-400">
+                    <p className="text-xs text-gray-400">
                       Created {format(new Date(campaign.createdAt), 'MMM dd, yyyy HH:mm')}
                     </p>
                   </CardContent>
@@ -428,14 +430,14 @@ export default function CampaignsPage() {
                       </div>
 
                       {/* Status + Action buttons */}
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-3 flex-wrap">
                         <StatusBadge status={campaign.status} />
                         <Button
                           variant="outline"
                           size="sm"
                           disabled={reusingId === campaign.id}
                           onClick={() => handleReuse(campaign.id)}
-                          className="text-[#0077b6] border-[#0077b6]/30 hover:bg-[#0077b6]/5 gap-1.5"
+                          className="text-[#0077b6] border-[#0077b6]/30 hover:bg-[#0077b6]/5 gap-1.5 px-4"
                         >
                           <Copy className="h-3.5 w-3.5" /> Reuse
                         </Button>
@@ -444,7 +446,7 @@ export default function CampaignsPage() {
                           size="sm"
                           disabled={deletingId === campaign.id}
                           onClick={() => handleDelete(campaign.id, campaign.campaignName)}
-                          className="text-red-500 border-red-200 hover:bg-red-50 gap-1.5"
+                          className="text-red-500 border-red-200 hover:bg-red-50 gap-1.5 px-4"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Delete
                         </Button>
