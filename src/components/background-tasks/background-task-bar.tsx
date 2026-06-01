@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle, XCircle, X, Search, Mail } from 'lucide-react';
+import { CheckCircle, XCircle, X, Search, Mail, Send } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useBackgroundTasks, type BackgroundTask } from './background-task-context';
 
 function TaskCard({ task, onDismiss }: { task: BackgroundTask; onDismiss: () => void }) {
+  const router = useRouter();
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
@@ -36,20 +38,41 @@ function TaskCard({ task, onDismiss }: { task: BackgroundTask; onDismiss: () => 
             {isSuccess && <CheckCircle className="h-4 w-4 text-green-600" />}
             {isError   && <XCircle    className="h-4 w-4 text-red-500" />}
             {isRunning && (
-              task.type === 'CAMPAIGN'
-                ? <Mail   className="h-4 w-4 text-[#0077b6] animate-pulse" />
-                : <Search className="h-4 w-4 text-[#0077b6] animate-pulse" />
+              task.type === 'CAMPAIGN'   ? <Mail   className="h-4 w-4 text-[#0077b6] animate-pulse" />
+              : task.type === 'APPROVAL' ? <Send   className="h-4 w-4 text-[#0077b6] animate-pulse" />
+              :                            <Search className="h-4 w-4 text-[#0077b6] animate-pulse" />
             )}
           </div>
           <div className="min-w-0">
             <p className="font-semibold text-gray-800 truncate">
-              {isRunning ? (task.type === 'CAMPAIGN' ? 'Generating email...' : 'Scraping leads...') : task.name}
+              {isRunning
+                ? task.type === 'CAMPAIGN' ? 'Generating email...'
+                : task.type === 'APPROVAL' ? 'Sending emails...'
+                : 'Scraping leads...'
+                : task.name}
             </p>
             <p className="text-xs text-gray-500 mt-0.5">
-              {isRunning  && 'You can browse freely — we\'ll notify you when done'}
-              {isSuccess  && (task.resultMessage || 'Completed successfully')}
-              {isError    && (task.error || 'Something went wrong')}
+              {isRunning && 'You can browse freely — we\'ll notify you when done'}
+              {isSuccess && (task.resultMessage || 'Completed successfully')}
+              {isError   && (task.error || 'Something went wrong')}
             </p>
+            {/* Clickable "View results" for completed tasks */}
+            {isSuccess && (task.type === 'CAMPAIGN' || task.type === 'APPROVAL') && (
+              <button
+                onClick={() => { router.push('/dashboard/campaigns'); onDismiss(); }}
+                className="mt-1 text-xs font-semibold text-[#0077b6] hover:underline"
+              >
+                View in Email Messages →
+              </button>
+            )}
+            {isSuccess && task.type === 'SCRAPER' && (
+              <button
+                onClick={() => { router.push('/dashboard/scraper/history'); onDismiss(); }}
+                className="mt-1 text-xs font-semibold text-[#0077b6] hover:underline"
+              >
+                View in Scraper History →
+              </button>
+            )}
           </div>
         </div>
 

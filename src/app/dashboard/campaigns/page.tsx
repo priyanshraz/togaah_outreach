@@ -104,7 +104,7 @@ const APPROVAL_STEPS = [
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 // ── Inline progress card — matches the green "Generating..." style ──────────
-function GeneratingCard({ name, startTime }: { name: string; startTime: number }) {
+function GeneratingCard({ name, startTime, type }: { name: string; startTime: number; type: string }) {
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {
     const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
@@ -123,7 +123,8 @@ function GeneratingCard({ name, startTime }: { name: string; startTime: number }
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
           </svg>
           <span className="font-bold text-green-800 text-sm truncate">
-            Generating your email — <span className="font-normal text-green-700">{name}</span>
+            {type === 'APPROVAL' ? 'Sending emails...' : 'Generating your email...'}{' '}
+            <span className="font-normal text-green-700">{name}</span>
           </span>
         </div>
         <span className="text-sm font-bold text-green-700 flex-shrink-0">{pct}%</span>
@@ -148,10 +149,10 @@ export default function CampaignsPage() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const router = useRouter();
-  const { tasks } = useBackgroundTasks();
+  const { tasks, startTask } = useBackgroundTasks();
 
-  // Running campaign generation tasks — shown inline as progress cards
-  const generatingTasks = tasks.filter((t) => t.type === 'CAMPAIGN' && t.status === 'running');
+  // Running tasks shown inline as progress cards
+  const generatingTasks = tasks.filter((t) => (t.type === 'CAMPAIGN' || t.type === 'APPROVAL') && t.status === 'running');
 
   // When a campaign task completes, refresh the list automatically
   useEffect(() => {
@@ -207,27 +208,40 @@ export default function CampaignsPage() {
 
   async function handleApprove() {
     if (!selectedCampaign) return;
-    setDialogState('loading');
-    try {
-      const res = await fetch('/api/campaigns/approve', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          campaignId: selectedCampaign.id,
-          decision: 'approved',
-          comments: comments || undefined,
-        }),
-        signal: AbortSignal.timeout(130000),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Approval failed');
-      setApprovalResult(json.n8nResponse ?? json);
-      setDialogState('success');
-      queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-    } catch (err) {
-      setApprovalResult({ error: err instanceof Error ? err.message : 'Unknown error' });
-      setDialogState('error');
-    }
+
+    const campaignId = selectedCampaign.id;
+    const campaignName = selectedCampaign.campaignName;
+
+    // Close dialog immediately — send in background
+    closeDialog();
+
+    startTask('APPROVAL', {
+      name: campaignName,
+      estimatedSeconds: 90,
+      run: async () => {
+        const res = await fetch('/api/campaigns/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            campaignId,
+            decision: 'approved',
+            comments: comments || undefined,
+          }),
+          signal: AbortSignal.timeout(130000),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Approval failed');
+        queryClient.invalidateQueries({ queryKey: ['campaigns'] });
+        const sent = json.n8nResponse?.emails_sent ?? json.n8nResponse?.total_sent ?? '';
+        return { message: sent ? `✅ ${sent} emails sent via Instantly.ai` : '✅ Emails sent successfully' };
+      },
+    });
+
+    toast({
+      title: '⚡ Sending emails in background',
+      description: 'You can browse freely — we\'ll notify you when done.',
+    });
+
   }
 
   // Show reject form to collect correction reason
@@ -382,7 +396,7 @@ export default function CampaignsPage() {
             </div>
             <div className="grid gap-4">
               {generatingTasks.map((task) => (
-                <GeneratingCard key={task.id} name={task.name} startTime={task.startTime} />
+                <GeneratingCard key={task.id} name={task.name} startTime={task.startTime} type={task.type} />
               ))}
             </div>
           </section>

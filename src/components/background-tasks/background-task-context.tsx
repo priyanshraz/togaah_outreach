@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useCallback, useRef } from 'react'
 
 export interface BackgroundTask {
   id: string;
-  type: 'CAMPAIGN' | 'SCRAPER';
+  type: 'CAMPAIGN' | 'SCRAPER' | 'APPROVAL';
   name: string;
   startTime: number;
   estimatedSeconds: number; // used to simulate progress
