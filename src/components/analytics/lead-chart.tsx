@@ -10,13 +10,20 @@ interface LeadChartProps {
   data: { sheet: string; count: number }[];
 }
 
+interface ActiveShapeProps {
+  cx: number; cy: number;
+  innerRadius: number; outerRadius: number;
+  startAngle: number; endAngle: number;
+  fill: string;
+}
+
 // Renders the hovered sector slightly larger — NO black rectangle
-const renderActiveShape = (props: Record<string, number>) => {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const renderActiveShape = (props: any) => {
+  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props as ActiveShapeProps;
   return (
     <Sector
-      cx={cx}
-      cy={cy}
+      cx={cx} cy={cy}
       innerRadius={innerRadius - 3}
       outerRadius={outerRadius + 6}
       startAngle={startAngle}
