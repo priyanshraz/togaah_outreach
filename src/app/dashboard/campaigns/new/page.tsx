@@ -31,65 +31,10 @@ const campaignSchema = z.object({
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
 
-// Loading step messages shown while n8n processes
-const LOADING_STEPS = [
-  { at: 0,   text: 'Sending campaign brief to n8n...' },
-  { at: 5,   text: 'Validating campaign data...' },
-  { at: 12,  text: 'Reading leads from Table...' },
-  { at: 25,  text: 'AI is crafting your email content...' },
-  { at: 55,  text: 'Finalising subject line and preview text...' },
-  { at: 90,  text: 'Almost done — saving campaign...' },
-  { at: 115, text: 'Wrapping up, hang tight...' },
-];
-
-function LoadingOverlay({ elapsed }: { elapsed: number }) {
-  const step = [...LOADING_STEPS].reverse().find((s) => elapsed >= s.at) ?? LOADING_STEPS[0];
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl text-center space-y-6">
-        {/* Animated logo ring */}
-        <div className="relative mx-auto h-20 w-20">
-          <div className="absolute inset-0 rounded-full border-4 border-[#0077b6]/20" />
-          <div className="absolute inset-0 rounded-full border-4 border-t-[#0077b6] animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Sparkles className="h-8 w-8 text-[#0077b6]" />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-gray-900">Generating AI Email</h3>
-          <p className="text-sm text-[#0077b6] font-medium min-h-[20px] transition-all">
-            {step.text}
-          </p>
-        </div>
-
-        {/* Progress bar */}
-        <div className="w-full bg-gray-100 rounded-full h-2">
-          <div
-            className="bg-[#0077b6] h-2 rounded-full transition-all duration-1000"
-            style={{ width: `${Math.min((elapsed / 120) * 100, 95)}%` }}
-          />
-        </div>
-
-        <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-          <Clock className="h-3 w-3" />
-          <span>{elapsed}s elapsed · typically 50–120s</span>
-        </div>
-
-        <p className="text-xs text-gray-400">
-          Do not close this tab — the AI is writing your campaign email
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export default function NewCampaignPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { startTask } = useBackgroundTasks();
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReuse, setIsReuse] = useState(false);
   const reusedRef = useRef(false);
   const [counts, setCounts] = useState<Record<string, number>>({});
@@ -137,8 +82,6 @@ export default function NewCampaignPage() {
   }, [form]);
 
   const onSubmit = async (data: CampaignFormData) => {
-    setIsSubmitting(true);
-
     // Navigate away immediately — task runs in background
     router.push('/dashboard/campaigns');
 
@@ -204,7 +147,7 @@ export default function NewCampaignPage() {
                   <Input
                     {...form.register('campaign_name')}
                     placeholder="e.g. April Hair Transplant Awareness"
-                    disabled={isSubmitting}
+                    
                   />
                   {form.formState.errors.campaign_name && (
                     <p className="text-red-500 text-xs mt-1">{form.formState.errors.campaign_name.message}</p>
@@ -214,7 +157,7 @@ export default function NewCampaignPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Service Type</label>
-                    <Select onValueChange={(v) => form.setValue('service_type', v)} disabled={isSubmitting}>
+                    <Select onValueChange={(v) => form.setValue('service_type', v)} >
                       <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Hair_Transplant">Hair Transplant</SelectItem>
@@ -233,7 +176,7 @@ export default function NewCampaignPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Target Region</label>
-                    <Select onValueChange={(v) => form.setValue('target_region', v)} disabled={isSubmitting}>
+                    <Select onValueChange={(v) => form.setValue('target_region', v)} >
                       <SelectTrigger><SelectValue placeholder="Select region" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Europe">Europe</SelectItem>
@@ -251,7 +194,7 @@ export default function NewCampaignPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Lead Sheet</label>
-                  <Select onValueChange={(v) => form.setValue('selected_sheet', v)} disabled={isSubmitting}>
+                  <Select onValueChange={(v) => form.setValue('selected_sheet', v)} >
                     <SelectTrigger><SelectValue placeholder="Select Table tab" /></SelectTrigger>
                     <SelectContent>
                       {['table1','table2','table3','table4','table5','table6'].map((t) => (
@@ -280,7 +223,7 @@ export default function NewCampaignPage() {
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email Goal</label>
-                  <Select onValueChange={(v) => form.setValue('campaign_goal', v)} disabled={isSubmitting}>
+                  <Select onValueChange={(v) => form.setValue('campaign_goal', v)} >
                     <SelectTrigger><SelectValue placeholder="What's the goal?" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Book consultation">Book consultation</SelectItem>
@@ -301,7 +244,7 @@ export default function NewCampaignPage() {
                     {...form.register('campaign_message')}
                     placeholder="Describe what you want to communicate. The AI will write the full email from this brief..."
                     rows={5}
-                    disabled={isSubmitting}
+                    
                   />
                   {form.formState.errors.campaign_message && (
                     <p className="text-red-500 text-xs mt-1">{form.formState.errors.campaign_message.message}</p>
@@ -310,7 +253,7 @@ export default function NewCampaignPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email Tone</label>
-                  <Select onValueChange={(v) => form.setValue('tone', v)} disabled={isSubmitting}>
+                  <Select onValueChange={(v) => form.setValue('tone', v)} >
                     <SelectTrigger><SelectValue placeholder="Select tone" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Warm and educational">Warm and educational</SelectItem>
@@ -337,7 +280,7 @@ export default function NewCampaignPage() {
                   <Input
                     {...form.register('cta_button_text')}
                     placeholder="Book Free Consultation"
-                    disabled={isSubmitting}
+                    
                   />
                   {form.formState.errors.cta_button_text && (
                     <p className="text-red-500 text-xs mt-1">{form.formState.errors.cta_button_text.message}</p>
@@ -348,7 +291,7 @@ export default function NewCampaignPage() {
                   <Input
                     {...form.register('cta_link')}
                     placeholder="https://www.toga.com/en/contact"
-                    disabled={isSubmitting}
+                    
                   />
                   {form.formState.errors.cta_link && (
                     <p className="text-red-500 text-xs mt-1">{form.formState.errors.cta_link.message}</p>
@@ -361,7 +304,7 @@ export default function NewCampaignPage() {
               type="submit"
               className="w-full bg-[#0077b6] hover:bg-[#005f8f] text-white"
               size="lg"
-              disabled={isSubmitting}
+              
             >
               {isSubmitting ? (
                 <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Generating AI Content...</>
