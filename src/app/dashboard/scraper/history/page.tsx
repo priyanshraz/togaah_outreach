@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import {
   Search, CheckCircle, XCircle, ArrowLeft,
-  AlertCircle, Clock,
+  AlertCircle, Clock, Users,
 } from 'lucide-react';
 import { Header } from '@/components/dashboard/header';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { formatDuration } from '@/lib/utils';
+import { useBackgroundTasks } from '@/components/background-tasks/background-task-context';
 
 interface ScraperJob {
   id: string;
@@ -51,7 +53,71 @@ function SuccessRate({ valid, total }: { valid: number; total: number }) {
   );
 }
 
+// ── Green progress card shown while scraping runs ──────────────────────────
+function ScrapingProgressCard({ name, startTime }: { name: string; startTime: number }) {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setElapsed(Math.floor((Date.now() - startTime) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [startTime]);
+  const pct = Math.min(Math.round((elapsed / 480) * 92), 92);
+
+  return (
+    <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4 space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <svg className="h-5 w-5 animate-spin text-green-600 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <span className="font-bold text-green-800 text-sm truncate">
+            Scraping leads — <span className="font-normal text-green-700">{name}</span>
+          </span>
+        </div>
+        <span className="text-sm font-bold text-green-700 flex-shrink-0">{pct}%</span>
+      </div>
+      <div className="h-2 w-full rounded-full bg-green-200 overflow-hidden">
+        <div className="h-full rounded-full bg-green-500 transition-all duration-1000 ease-linear" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="text-xs text-green-600">You can freely navigate — we&apos;ll notify you when done.</p>
+    </div>
+  );
+}
+
+// ── Result card shown after scrape completes ────────────────────────────────
+function ScraperResultCard({ message }: { message: string }) {
+  const parts = message.replace('✅ ', '').split(' leads saved to ');
+  const count = parts[0] ?? '';
+  const table = parts[1] ?? '';
+  return (
+    <div className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <CheckCircle className="h-5 w-5 text-blue-600 flex-shrink-0" />
+        <span className="font-bold text-blue-800 text-sm">Latest Scrape Complete</span>
+      </div>
+      <div className="flex gap-6 text-sm">
+        <div className="flex items-center gap-1.5">
+          <Users className="h-4 w-4 text-blue-500" />
+          <span className="font-semibold text-blue-700">{count} leads saved</span>
+        </div>
+        {table && <span className="text-blue-600 text-xs">→ {table}</span>}
+      </div>
+    </div>
+  );
+}
+
 export default function ScraperHistoryPage() {
+  const queryClient = useQueryClient();
+  const { tasks } = useBackgroundTasks();
+
+  const scrapingTasks  = tasks.filter((t) => t.type === 'SCRAPER' && t.status === 'running');
+  const lastCompleted  = tasks.find((t) => t.type === 'SCRAPER' && t.status === 'success');
+
+  // Auto-refresh when scraper task completes
+  useEffect(() => {
+    if (lastCompleted) queryClient.invalidateQueries({ queryKey: ['scraper-jobs'] });
+  }, [lastCompleted, queryClient]);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['scraper-jobs'],
     queryFn: async () => {
@@ -69,6 +135,17 @@ export default function ScraperHistoryPage() {
       <Header title="Scraper History" description="All past Google Maps scraping runs" />
 
       <div className="p-4 pb-28 space-y-4 lg:p-6 lg:space-y-5">
+
+        {/* ── Active scraping progress cards ── */}
+        {scrapingTasks.map((t) => (
+          <ScrapingProgressCard key={t.id} name={t.name} startTime={t.startTime} />
+        ))}
+
+        {/* ── Last completed result card ── */}
+        {lastCompleted?.resultMessage && (
+          <ScraperResultCard message={lastCompleted.resultMessage} />
+        )}
+
         {/* Back + New Scrape */}
         <div className="flex items-center justify-between">
           <Button variant="ghost" asChild className="text-gray-600 gap-2">
