@@ -51,6 +51,15 @@
   }
 }
 
+/* Remove focus outlines on recharts SVG elements */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-wrapper svg,
+.recharts-wrapper svg * {
+  outline: none !important;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

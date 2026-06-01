@@ -48,7 +48,10 @@ export function LeadChart({ data }: LeadChartProps) {
       <CardContent>
         <div className="relative">
           <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
+            <PieChart
+              style={{ outline: 'none' }}
+              onClick={() => {/* prevent focus */ }}
+            >
               <Pie
                 data={data}
                 dataKey="count"
@@ -60,13 +63,16 @@ export function LeadChart({ data }: LeadChartProps) {
                 paddingAngle={2}
                 isAnimationActive={false}
                 stroke="none"
+                strokeWidth={0}
                 activeIndex={activeIndex}
                 activeShape={renderActiveShape}
                 onMouseEnter={(_, index) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(undefined)}
+                onTouchStart={(_, index) => setActiveIndex(index)}
+                onTouchEnd={() => setActiveIndex(undefined)}
               >
                 {data.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" />
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" strokeWidth={0} />
                 ))}
               </Pie>
               <Legend
