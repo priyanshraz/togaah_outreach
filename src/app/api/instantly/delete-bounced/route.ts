@@ -117,30 +117,30 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Step 2: Delete from Instantly.ai ─────────────────────────────────
+    // Instantly v2: DELETE /api/v2/lead with { campaign_id, email }
     let deletedInstantly = 0;
-    try {
-      // Try bulk delete endpoint
-      const delRes = await fetch(`${INSTANTLY_BASE}/leads/delete`, {
-        method: 'POST',
-        headers: headers(),
-        body: JSON.stringify({ campaign_id, emails: bouncedEmails }),
-      });
-      if (delRes.ok) {
-        deletedInstantly = bouncedEmails.length;
-      } else {
-        // Fallback: delete one by one
-        for (const email of bouncedEmails) {
-          const r = await fetch(`${INSTANTLY_BASE}/leads/delete`, {
-            method: 'POST',
-            headers: headers(),
-            body: JSON.stringify({ campaign_id, email }),
-          });
-          if (r.ok) deletedInstantly++;
+    const deleteErrors: string[] = [];
+    for (const email of bouncedEmails) {
+      try {
+        const r = await fetch(`${INSTANTLY_BASE}/lead`, {
+          method: 'DELETE',
+          headers: headers(),
+          body: JSON.stringify({ campaign_id, email }),
+        });
+        if (r.ok) {
+          deletedInstantly++;
+        } else {
+          const txt = await r.text().catch(() => '');
+          deleteErrors.push(`${email}: ${r.status} ${txt.slice(0, 80)}`);
         }
+      } catch (e) {
+        console.error(`[delete-bounced] delete ${email}:`, e);
       }
-    } catch (e) {
-      console.error('[delete-bounced] Instantly delete error:', e);
     }
+    if (deleteErrors.length > 0) {
+      console.log('[delete-bounced] delete errors (first 3):', deleteErrors.slice(0, 3));
+    }
+    console.log(`[delete-bounced] Deleted ${deletedInstantly}/${bouncedEmails.length} from Instantly`);
 
     // ── Step 3: Delete from all Supabase tables ───────────────────────────
     let deletedSupabase = 0;
