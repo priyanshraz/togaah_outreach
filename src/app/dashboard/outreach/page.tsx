@@ -10,7 +10,6 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { Header } from '@/components/dashboard/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -99,7 +98,7 @@ export default function OutreachAnalyticsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmId, setConfirmId]   = useState<string | null>(null);
 
-  async function handleDeleteBounced(campaignId: string, campaignName: string) {
+  async function handleDeleteBounced(campaignId: string) {
     if (confirmId !== campaignId) {
       setConfirmId(campaignId);
       return;
@@ -114,9 +113,13 @@ export default function OutreachAnalyticsPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Delete failed');
+      const found = json.bounced_emails_found ?? 0;
+      const fromDB = json.deleted_from_supabase ?? 0;
       toast({
-        title: '✅ Bounced contacts deleted',
-        description: `${json.bounced_emails_found} removed from Instantly.ai · ${json.deleted_from_supabase} removed from Supabase`,
+        title: found > 0 ? '✅ Bounced contacts deleted' : 'ℹ️ No bounced contacts found',
+        description: found > 0
+          ? `${found} removed from Instantly.ai · ${fromDB} removed from Supabase`
+          : json.message ?? 'Nothing to delete',
       });
     } catch (err) {
       toast({
@@ -282,7 +285,7 @@ export default function OutreachAnalyticsPage() {
                               <div className="flex items-center gap-1.5">
                                 <span className="text-xs text-red-600 font-medium">Delete {c.bounced_count}?</span>
                                 <button
-                                  onClick={() => handleDeleteBounced(c.campaign_id, c.campaign_name)}
+                                  onClick={() => handleDeleteBounced(c.campaign_id)}
                                   disabled={deletingId === c.campaign_id}
                                   className="text-xs bg-red-500 text-white px-2 py-0.5 rounded hover:bg-red-600 disabled:opacity-50"
                                 >
@@ -292,7 +295,7 @@ export default function OutreachAnalyticsPage() {
                               </div>
                             ) : (
                               <button
-                                onClick={() => handleDeleteBounced(c.campaign_id, c.campaign_name)}
+                                onClick={() => handleDeleteBounced(c.campaign_id)}
                                 disabled={deletingId === c.campaign_id}
                                 className="flex items-center gap-1 text-xs text-red-500 border border-red-200 rounded px-2 py-1 hover:bg-red-50 disabled:opacity-40 whitespace-nowrap"
                               >

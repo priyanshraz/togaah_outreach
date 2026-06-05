@@ -7,22 +7,93 @@ import { prisma } from '@/lib/prisma';
 const INSTANTLY_BASE = 'https://api.instantly.ai/api/v2';
 const TABLES = ['table1', 'table2', 'table3', 'table4', 'table5', 'table6'];
 
-async function instantlyFetch(endpoint: string, options?: RequestInit) {
-  const apiKey = process.env.INSTANTLY_API_KEY;
-  if (!apiKey) throw new Error('INSTANTLY_API_KEY not configured');
-  const res = await fetch(`${INSTANTLY_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      ...(options?.headers ?? {}),
-    },
-  });
-  return res;
+function headers() {
+  return {
+    Authorization: `Bearer ${process.env.INSTANTLY_API_KEY}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+// Fetch bounced lead emails for a campaign.
+// Tries multiple Instantly v2 endpoint patterns until one succeeds.
+async function fetchBouncedEmails(campaign_id: string): Promise<string[]> {
+  const emails: string[] = [];
+
+  // ── Attempt 1: POST /api/v2/leads/list with filter ────────────────────────
+  try {
+    let skip = 0;
+    const limit = 100;
+    while (true) {
+      const res = await fetch(`${INSTANTLY_BASE}/leads/list`, {
+        method: 'POST',
+        headers: headers(),
+        body: JSON.stringify({
+          campaign_id,
+          filter_list_status: [3], // 3 = Bounced in Instantly
+          limit,
+          skip,
+        }),
+      });
+      if (!res.ok) break;
+      const data = await res.json();
+      const items: { email: string }[] = Array.isArray(data) ? data
+        : Array.isArray(data?.items) ? data.items
+        : Array.isArray(data?.data)  ? data.data
+        : [];
+      items.forEach((l) => { if (l.email) emails.push(l.email.toLowerCase().trim()); });
+      if (items.length < limit) break;
+      skip += limit;
+    }
+    if (emails.length > 0) return emails;
+  } catch { /* try next */ }
+
+  // ── Attempt 2: GET /api/v2/lead with list_status ──────────────────────────
+  try {
+    let skip = 0;
+    const limit = 100;
+    while (true) {
+      const res = await fetch(
+        `${INSTANTLY_BASE}/lead?campaign_id=${campaign_id}&list_status=3&limit=${limit}&skip=${skip}`,
+        { headers: headers() }
+      );
+      if (!res.ok) break;
+      const data = await res.json();
+      const items: { email: string }[] = Array.isArray(data) ? data
+        : Array.isArray(data?.items) ? data.items
+        : Array.isArray(data?.data)  ? data.data
+        : [];
+      items.forEach((l) => { if (l.email) emails.push(l.email.toLowerCase().trim()); });
+      if (items.length < limit) break;
+      skip += limit;
+    }
+    if (emails.length > 0) return emails;
+  } catch { /* try next */ }
+
+  // ── Attempt 3: GET /api/v2/leads with filter_list_status ─────────────────
+  try {
+    let skip = 0;
+    const limit = 100;
+    while (true) {
+      const res = await fetch(
+        `${INSTANTLY_BASE}/leads?campaign_id=${campaign_id}&filter_list_status=3&limit=${limit}&skip=${skip}`,
+        { headers: headers() }
+      );
+      if (!res.ok) { console.log('Attempt 3 status:', res.status, await res.text().catch(() => '')); break; }
+      const data = await res.json();
+      const items: { email: string }[] = Array.isArray(data) ? data
+        : Array.isArray(data?.items) ? data.items
+        : Array.isArray(data?.data)  ? data.data
+        : [];
+      items.forEach((l) => { if (l.email) emails.push(l.email.toLowerCase().trim()); });
+      if (items.length < limit) break;
+      skip += limit;
+    }
+  } catch { /* nothing */ }
+
+  return emails;
 }
 
 // POST /api/instantly/delete-bounced
-// Body: { campaign_id: string }
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -31,65 +102,58 @@ export async function POST(req: NextRequest) {
     const { campaign_id } = await req.json();
     if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
 
-    // ── Step 1: Fetch bounced leads from Instantly.ai ──────────────────────
-    // Get all leads for this campaign filtered by bounced status
-    const bouncedEmails: string[] = [];
-    let skip = 0;
-    const limit = 100;
-
-    while (true) {
-      const res = await instantlyFetch(
-        `/leads?campaign_id=${campaign_id}&status=bounced&limit=${limit}&skip=${skip}`
-      );
-
-      if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        console.error('Instantly leads fetch error:', text);
-        break;
-      }
-
-      const data = await res.json();
-      // Response can be array or { items: [] } or { data: [] }
-      const items: { email: string }[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.items) ? data.items
-        : Array.isArray(data?.data)  ? data.data
-        : [];
-
-      items.forEach((l) => { if (l.email) bouncedEmails.push(l.email.toLowerCase().trim()); });
-
-      if (items.length < limit) break;
-      skip += limit;
-    }
+    // ── Step 1: Get bounced emails ────────────────────────────────────────
+    const bouncedEmails = await fetchBouncedEmails(campaign_id);
+    console.log(`[delete-bounced] campaign=${campaign_id} found ${bouncedEmails.length} bounced`);
 
     if (bouncedEmails.length === 0) {
-      return NextResponse.json({ success: true, deleted_from_instantly: 0, deleted_from_supabase: 0, message: 'No bounced leads found' });
+      return NextResponse.json({
+        success: true,
+        bounced_emails_found: 0,
+        deleted_from_instantly: 0,
+        deleted_from_supabase: 0,
+        message: 'No bounced leads found via Instantly API',
+      });
     }
 
-    // ── Step 2: Delete from Instantly.ai ──────────────────────────────────
+    // ── Step 2: Delete from Instantly.ai ─────────────────────────────────
     let deletedInstantly = 0;
     try {
-      const delRes = await instantlyFetch(`/leads/delete`, {
+      // Try bulk delete endpoint
+      const delRes = await fetch(`${INSTANTLY_BASE}/leads/delete`, {
         method: 'POST',
+        headers: headers(),
         body: JSON.stringify({ campaign_id, emails: bouncedEmails }),
       });
-      if (delRes.ok) deletedInstantly = bouncedEmails.length;
-      else console.error('Instantly delete error:', await delRes.text());
+      if (delRes.ok) {
+        deletedInstantly = bouncedEmails.length;
+      } else {
+        // Fallback: delete one by one
+        for (const email of bouncedEmails) {
+          const r = await fetch(`${INSTANTLY_BASE}/leads/delete`, {
+            method: 'POST',
+            headers: headers(),
+            body: JSON.stringify({ campaign_id, email }),
+          });
+          if (r.ok) deletedInstantly++;
+        }
+      }
     } catch (e) {
-      console.error('Instantly delete exception:', e);
+      console.error('[delete-bounced] Instantly delete error:', e);
     }
 
-    // ── Step 3: Delete from Supabase tables ───────────────────────────────
+    // ── Step 3: Delete from all Supabase tables ───────────────────────────
     let deletedSupabase = 0;
     for (const table of TABLES) {
       try {
-        const result = await prisma.$executeRawUnsafe(
-          `DELETE FROM public."${table}" WHERE LOWER(email) = ANY($1::text[])`,
+        const count = await prisma.$executeRawUnsafe(
+          `DELETE FROM public."${table}" WHERE LOWER(TRIM(email)) = ANY($1::text[])`,
           bouncedEmails
         );
-        deletedSupabase += result;
+        deletedSupabase += count;
+        if (count > 0) console.log(`[delete-bounced] Deleted ${count} from ${table}`);
       } catch (e) {
-        console.error(`Delete from ${table} error:`, e);
+        console.error(`[delete-bounced] ${table} error:`, e);
       }
     }
 
@@ -98,11 +162,11 @@ export async function POST(req: NextRequest) {
       bounced_emails_found: bouncedEmails.length,
       deleted_from_instantly: deletedInstantly,
       deleted_from_supabase: deletedSupabase,
-      message: `Deleted ${bouncedEmails.length} bounced contacts from Instantly.ai and ${deletedSupabase} from Supabase`,
+      message: `Deleted ${bouncedEmails.length} bounced contacts`,
     });
 
   } catch (error) {
-    console.error('delete-bounced error:', error);
+    console.error('[delete-bounced] error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
