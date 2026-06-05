@@ -16,81 +16,68 @@ function hdrs() {
 
 interface Lead { id: string; email: string; }
 
-// ── Fetch bounced leads using POST /leads/list ────────────────────────────
+// ── Fetch bounced leads ────────────────────────────────────────────────────
 async function getBounced(campaign_id: string): Promise<Lead[]> {
   const leads: Lead[] = [];
   let skip = 0;
   while (true) {
     const res = await fetch(`${BASE}/leads/list`, {
-      method: 'POST',
-      headers: hdrs(),
+      method: 'POST', headers: hdrs(),
       body: JSON.stringify({ campaign_id, filter_list_status: [3], limit: 100, skip }),
     });
-    if (!res.ok) { console.error('leads/list', res.status, await res.text().catch(() => '')); break; }
+    if (!res.ok) break;
     const raw = await res.json();
-    // Log first call to understand structure
-    if (skip === 0) console.log('[bounced] sample:', JSON.stringify(raw).slice(0, 400));
     const items: Record<string, unknown>[] = Array.isArray(raw) ? raw
       : Array.isArray(raw?.items) ? raw.items
-      : Array.isArray(raw?.data) ? raw.data : [];
+      : Array.isArray(raw?.data)  ? raw.data : [];
     items.forEach((l) => {
       const email = String(l.email ?? '').toLowerCase().trim();
-      const id = String(l.id ?? l.lead_id ?? l._id ?? '');
+      const id    = String(l.id ?? l.lead_id ?? l._id ?? '');
       if (email) leads.push({ id, email });
     });
     if (items.length < 100) break;
     skip += 100;
   }
+  console.log(`[bounced] fetched ${leads.length} bounced leads`);
   return leads;
 }
 
-// ── Try multiple delete strategies for Instantly ─────────────────────────
-async function deleteFromInstantly(campaign_id: string, leads: Lead[]): Promise<number> {
-  let deleted = 0;
+// ── Mark lead as unsubscribed in Instantly (list_status 4 = Do Not Contact)
+// This is the correct v2 approach — DELETE returns 400 because Instantly
+// requires you to UPDATE the status rather than hard-delete leads.
+async function markUnsubscribed(campaign_id: string, leads: Lead[]): Promise<number> {
+  let done = 0;
+
+  // Strategy A: PATCH /lead/{id} — update list_status to 4 (opted out)
   for (const lead of leads) {
-    let ok = false;
+    if (!lead.id) continue;
+    const r = await fetch(`${BASE}/lead/${lead.id}`, {
+      method: 'PATCH', headers: hdrs(),
+      body: JSON.stringify({ list_status: 4 }),
+    });
+    if (r.ok) { done++; continue; }
+    console.log(`[bounced] PATCH ${r.status} id=${lead.id}`);
 
-    // Strategy 1: DELETE /lead/{id}?campaign_id=xxx  (no body)
-    if (!ok && lead.id) {
-      const r = await fetch(`${BASE}/lead/${lead.id}?campaign_id=${campaign_id}`, {
-        method: 'DELETE', headers: hdrs(),
-      });
-      if (r.ok) { ok = true; }
-      else console.log(`S1 ${r.status}`, lead.id);
-    }
+    // Strategy B: DELETE /lead/{id} with campaign_id in body
+    // (400 was because we sent no body previously)
+    const r2 = await fetch(`${BASE}/lead/${lead.id}`, {
+      method: 'DELETE', headers: hdrs(),
+      body: JSON.stringify({ campaign_id }),
+    });
+    if (r2.ok) { done++; continue; }
+    console.log(`[bounced] DELETE+body ${r2.status} id=${lead.id}`);
 
-    // Strategy 2: DELETE /lead/{id}  (no body, no query)
-    if (!ok && lead.id) {
-      const r = await fetch(`${BASE}/lead/${lead.id}`, {
-        method: 'DELETE', headers: hdrs(),
-      });
-      if (r.ok) { ok = true; }
-      else console.log(`S2 ${r.status}`, lead.id);
-    }
-
-    // Strategy 3: POST /leads/delete  with email list
-    if (!ok) {
-      const r = await fetch(`${BASE}/leads/delete`, {
-        method: 'POST', headers: hdrs(),
-        body: JSON.stringify({ campaign_id, emails: [lead.email] }),
-      });
-      if (r.ok) { ok = true; }
-      else console.log(`S3 ${r.status}`, lead.email);
-    }
-
-    // Strategy 4: Global unsubscribe — ensures no future emails
-    if (!ok) {
-      const r = await fetch(`${BASE}/account/unsubscribe/add`, {
-        method: 'POST', headers: hdrs(),
-        body: JSON.stringify({ emails: [lead.email] }),
-      });
-      if (r.ok) { ok = true; }
-      else console.log(`S4 ${r.status}`, lead.email);
-    }
-
-    if (ok) deleted++;
+    // Strategy C: POST /leads/update with email + status
+    const r3 = await fetch(`${BASE}/leads/update`, {
+      method: 'POST', headers: hdrs(),
+      body: JSON.stringify({ campaign_id, email: lead.email, list_status: 4 }),
+    });
+    if (r3.ok) { done++; }
+    else console.log(`[bounced] update ${r3.status} email=${lead.email}`);
   }
-  return deleted;
+
+  console.log(`[bounced] marked ${done}/${leads.length} in Instantly`);
+  return done;
 }
 
 // ── POST /api/instantly/delete-bounced ────────────────────────────────────
@@ -105,17 +92,15 @@ export async function POST(req: NextRequest) {
     // Step 1: Get bounced leads
     const bouncedLeads = await getBounced(campaign_id);
     const emails = bouncedLeads.map((l) => l.email);
-    console.log(`[bounced] found=${bouncedLeads.length} ids=${JSON.stringify(bouncedLeads.slice(0,2))}`);
 
     if (bouncedLeads.length === 0) {
       return NextResponse.json({ success: true, bounced_emails_found: 0, deleted_from_instantly: 0, deleted_from_supabase: 0, message: 'No bounced leads found' });
     }
 
-    // Step 2: Delete from Instantly
-    const deletedInstantly = await deleteFromInstantly(campaign_id, bouncedLeads);
-    console.log(`[bounced] instantly deleted=${deletedInstantly}/${bouncedLeads.length}`);
+    // Step 2: Mark as unsubscribed in Instantly
+    const markedInstantly = await markUnsubscribed(campaign_id, bouncedLeads);
 
-    // Step 3: Delete from Supabase tables
+    // Step 3: Delete from all Supabase tables
     let deletedSupabase = 0;
     for (const table of TABLES) {
       try {
@@ -130,9 +115,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       bounced_emails_found: bouncedLeads.length,
-      deleted_from_instantly: deletedInstantly,
+      deleted_from_instantly: markedInstantly,
       deleted_from_supabase: deletedSupabase,
-      message: `${bouncedLeads.length} bounced · Instantly: ${deletedInstantly} · Supabase: ${deletedSupabase}`,
+      message: `${bouncedLeads.length} bounced contacts processed · Instantly: ${markedInstantly} marked · Supabase: ${deletedSupabase} deleted`,
     });
 
   } catch (error) {
