@@ -3,8 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   Mail, Users, Eye, MessageSquare, XCircle,
-  CheckCircle, RefreshCw, AlertCircle, Activity,
-  TrendingUp, MousePointer,
+  CheckCircle, RefreshCw, AlertCircle, Activity, TrendingUp, MousePointer,
 } from 'lucide-react';
 import { Header } from '@/components/dashboard/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -238,34 +237,6 @@ export default function OutreachAnalyticsPage() {
                         <TableCell className="text-blue-500">{c.link_click_count.toLocaleString()}</TableCell>
                         <TableCell className="text-red-500 font-medium">{c.bounced_count.toLocaleString()}</TableCell>
                         <TableCell className="text-teal-600">{c.completed_count.toLocaleString()}</TableCell>
-                        <TableCell>
-                          {c.bounced_count > 0 ? (
-                            confirmId === c.campaign_id ? (
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-xs text-red-600 font-medium">Delete {c.bounced_count}?</span>
-                                <button
-                                  onClick={() => handleDeleteBounced(c.campaign_id)}
-                                  disabled={deletingId === c.campaign_id}
-                                  className="text-xs bg-red-500 text-white px-2 py-0.5 rounded hover:bg-red-600 disabled:opacity-50"
-                                >
-                                  {deletingId === c.campaign_id ? '...' : 'Yes'}
-                                </button>
-                                <button onClick={() => setConfirmId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => handleDeleteBounced(c.campaign_id)}
-                                disabled={deletingId === c.campaign_id}
-                                className="flex items-center gap-1 text-xs text-red-500 border border-red-200 rounded px-2 py-1 hover:bg-red-50 disabled:opacity-40 whitespace-nowrap"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                Delete Bounced
-                              </button>
-                            )
-                          ) : (
-                            <span className="text-xs text-gray-300">—</span>
-                          )}
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
