@@ -1,11 +1,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import {
   Mail, Users, Eye, MessageSquare, XCircle,
   CheckCircle, RefreshCw, AlertCircle, Activity,
-  TrendingUp, MousePointer,
+  TrendingUp, MousePointer, Trash2,
 } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
 import { Header } from '@/components/dashboard/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -93,6 +95,40 @@ function StatCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OutreachAnalyticsPage() {
+  const { toast } = useToast();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmId, setConfirmId]   = useState<string | null>(null);
+
+  async function handleDeleteBounced(campaignId: string, campaignName: string) {
+    if (confirmId !== campaignId) {
+      setConfirmId(campaignId);
+      return;
+    }
+    setConfirmId(null);
+    setDeletingId(campaignId);
+    try {
+      const res = await fetch('/api/instantly/delete-bounced', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_id: campaignId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Delete failed');
+      toast({
+        title: '✅ Bounced contacts deleted',
+        description: `${json.bounced_emails_found} removed from Instantly.ai · ${json.deleted_from_supabase} removed from Supabase`,
+      });
+    } catch (err) {
+      toast({
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const { data, isLoading, error, refetch, isFetching } = useQuery<AnalyticsResponse>({
     queryKey: ['instantly-analytics'],
     queryFn: async () => {
@@ -204,6 +240,7 @@ export default function OutreachAnalyticsPage() {
                       <TableHead><span className="flex items-center gap-1 text-blue-500"><MousePointer className="h-3 w-3"/>Clicks</span></TableHead>
                       <TableHead><span className="flex items-center gap-1 text-red-500"><XCircle className="h-3 w-3"/>Bounced</span></TableHead>
                       <TableHead><span className="flex items-center gap-1 text-teal-600"><CheckCircle className="h-3 w-3"/>Done</span></TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -237,8 +274,36 @@ export default function OutreachAnalyticsPage() {
                           </span>
                         </TableCell>
                         <TableCell className="text-blue-500">{c.link_click_count.toLocaleString()}</TableCell>
-                        <TableCell className="text-red-500">{c.bounced_count.toLocaleString()}</TableCell>
+                        <TableCell className="text-red-500 font-medium">{c.bounced_count.toLocaleString()}</TableCell>
                         <TableCell className="text-teal-600">{c.completed_count.toLocaleString()}</TableCell>
+                        <TableCell>
+                          {c.bounced_count > 0 ? (
+                            confirmId === c.campaign_id ? (
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs text-red-600 font-medium">Delete {c.bounced_count}?</span>
+                                <button
+                                  onClick={() => handleDeleteBounced(c.campaign_id, c.campaign_name)}
+                                  disabled={deletingId === c.campaign_id}
+                                  className="text-xs bg-red-500 text-white px-2 py-0.5 rounded hover:bg-red-600 disabled:opacity-50"
+                                >
+                                  {deletingId === c.campaign_id ? '...' : 'Yes'}
+                                </button>
+                                <button onClick={() => setConfirmId(null)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleDeleteBounced(c.campaign_id, c.campaign_name)}
+                                disabled={deletingId === c.campaign_id}
+                                className="flex items-center gap-1 text-xs text-red-500 border border-red-200 rounded px-2 py-1 hover:bg-red-50 disabled:opacity-40 whitespace-nowrap"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                Delete Bounced
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
