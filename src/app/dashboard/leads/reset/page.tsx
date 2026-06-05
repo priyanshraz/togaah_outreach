@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import {
   RefreshCw, AlertTriangle, CheckCircle, XCircle,
-  Loader2, Clock, RotateCcw,
+  Loader2, Clock, RotateCcw, Trash2,
 } from 'lucide-react';
 import { Header } from '@/components/dashboard/header';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,112 @@ interface HistoryItem {
   display_name: string;
   rows_reset: number;
   timestamp: string;
+}
+
+// ── Delete Invalid Email Leads component ──────────────────────────────────
+function DeleteInvalidCard() {
+  const { toast } = useToast();
+  const [state, setState] = useState<'idle' | 'confirming' | 'loading' | 'done'>('idle');
+  const [result, setResult] = useState<{ total_deleted: number; by_table: Record<string, number> } | null>(null);
+
+  async function handleConfirm() {
+    setState('loading');
+    try {
+      const res = await fetch('/api/leads/delete-invalid', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setResult(data);
+      setState('done');
+      toast({ title: '✅ Invalid leads deleted', description: `${data.total_deleted} leads removed across all tables` });
+    } catch (err) {
+      setState('idle');
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Try again', variant: 'destructive' });
+    }
+  }
+
+  return (
+    <Card className="shadow-sm border-red-100">
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Trash2 className="h-4 w-4 text-red-500" />
+          Delete Invalid Email Leads
+        </CardTitle>
+        <CardDescription>
+          Remove leads with invalid or null email addresses from all tables (table1–table6)
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {state === 'idle' && (
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+              <AlertTriangle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-amber-800">
+                This will permanently delete all leads with <strong>invalid, empty, or null email addresses</strong> from every table. This action <strong>cannot be undone.</strong>
+              </p>
+            </div>
+            <Button
+              className="w-full bg-red-500 hover:bg-red-600 text-white"
+              onClick={() => setState('confirming')}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Delete Invalid Email Leads
+            </Button>
+          </div>
+        )}
+
+        {state === 'confirming' && (
+          <div className="rounded-lg border-2 border-red-200 bg-red-50 p-4 space-y-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-red-800">Are you sure?</p>
+                <p className="text-sm text-red-700 mt-0.5">
+                  All leads with invalid emails will be <strong>permanently deleted</strong> from all 6 tables.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" className="flex-1" onClick={() => setState('idle')}>Cancel</Button>
+              <Button className="flex-1 bg-red-600 hover:bg-red-700 text-white" onClick={handleConfirm}>
+                Yes, Delete Now
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {state === 'loading' && (
+          <div className="flex flex-col items-center py-8 space-y-3">
+            <Loader2 className="h-10 w-10 animate-spin text-red-500" />
+            <p className="font-medium text-gray-700">Deleting invalid leads...</p>
+            <p className="text-sm text-gray-400">Scanning all 6 tables</p>
+          </div>
+        )}
+
+        {state === 'done' && result && (
+          <div className="rounded-lg border border-green-200 bg-green-50 p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              <p className="font-bold text-green-800 text-lg">Deletion Complete ✅</p>
+            </div>
+            <p className="text-sm text-green-700">
+              <strong>{result.total_deleted.toLocaleString()}</strong> invalid email leads deleted
+            </p>
+            {Object.entries(result.by_table).length > 0 && (
+              <div className="space-y-1">
+                {Object.entries(result.by_table).map(([table, count]) => (
+                  <div key={table} className="flex justify-between text-xs text-green-600">
+                    <span>{table}</span><span className="font-semibold">{count} deleted</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <Button variant="outline" className="w-full border-green-300 text-green-700 hover:bg-green-100" onClick={() => { setState('idle'); setResult(null); }}>
+              <RotateCcw className="mr-2 h-4 w-4" /> Done
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 export default function ResetLeadStatusPage() {
@@ -242,6 +348,9 @@ export default function ResetLeadStatusPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* ── Delete Invalid Email Leads ──────────────────────────────── */}
+        <DeleteInvalidCard />
 
         {/* Recent History */}
         {history.length > 0 && (

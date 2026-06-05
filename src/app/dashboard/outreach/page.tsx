@@ -1,13 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import {
   Mail, Users, Eye, MessageSquare, XCircle,
   CheckCircle, RefreshCw, AlertCircle, Activity,
-  TrendingUp, MousePointer, Trash2,
+  TrendingUp, MousePointer,
 } from 'lucide-react';
-import { useToast } from '@/components/ui/use-toast';
 import { Header } from '@/components/dashboard/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -94,52 +92,6 @@ function StatCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OutreachAnalyticsPage() {
-  const { toast } = useToast();
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [confirmId, setConfirmId]   = useState<string | null>(null);
-
-  async function handleDeleteBounced(campaignId: string) {
-    if (confirmId !== campaignId) {
-      setConfirmId(campaignId);
-      return;
-    }
-    setConfirmId(null);
-    setDeletingId(campaignId);
-    try {
-      const res = await fetch('/api/instantly/delete-bounced', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ campaign_id: campaignId }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Delete failed');
-      const found = json.bounced_emails_found ?? 0;
-      const fromDB = json.deleted_from_supabase ?? 0;
-      if (json.needs_write_key) {
-        toast({
-          title: '⚠️ Instantly API key needs write permission',
-          description: `${fromDB} deleted from Supabase ✅ · To also remove from Instantly, update INSTANTLY_API_KEY in Vercel with a write-enabled key`,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: found > 0 ? '✅ Bounced contacts deleted' : 'ℹ️ No bounced contacts found',
-          description: found > 0
-            ? `${found} found · ${json.deleted_from_instantly} removed from Instantly · ${fromDB} removed from Supabase`
-            : json.message ?? 'Nothing to delete',
-        });
-      }
-    } catch (err) {
-      toast({
-        title: 'Delete failed',
-        description: err instanceof Error ? err.message : 'Try again',
-        variant: 'destructive',
-      });
-    } finally {
-      setDeletingId(null);
-    }
-  }
-
   const { data, isLoading, error, refetch, isFetching } = useQuery<AnalyticsResponse>({
     queryKey: ['instantly-analytics'],
     queryFn: async () => {
@@ -251,7 +203,6 @@ export default function OutreachAnalyticsPage() {
                       <TableHead><span className="flex items-center gap-1 text-blue-500"><MousePointer className="h-3 w-3"/>Clicks</span></TableHead>
                       <TableHead><span className="flex items-center gap-1 text-red-500"><XCircle className="h-3 w-3"/>Bounced</span></TableHead>
                       <TableHead><span className="flex items-center gap-1 text-teal-600"><CheckCircle className="h-3 w-3"/>Done</span></TableHead>
-                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
