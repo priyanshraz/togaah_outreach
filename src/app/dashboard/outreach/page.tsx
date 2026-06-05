@@ -115,12 +115,20 @@ export default function OutreachAnalyticsPage() {
       if (!res.ok) throw new Error(json.error || 'Delete failed');
       const found = json.bounced_emails_found ?? 0;
       const fromDB = json.deleted_from_supabase ?? 0;
-      toast({
-        title: found > 0 ? '✅ Bounced contacts deleted' : 'ℹ️ No bounced contacts found',
-        description: found > 0
-          ? `${found} removed from Instantly.ai · ${fromDB} removed from Supabase`
-          : json.message ?? 'Nothing to delete',
-      });
+      if (json.needs_write_key) {
+        toast({
+          title: '⚠️ Instantly API key needs write permission',
+          description: `${fromDB} deleted from Supabase ✅ · To also remove from Instantly, update INSTANTLY_API_KEY in Vercel with a write-enabled key`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: found > 0 ? '✅ Bounced contacts deleted' : 'ℹ️ No bounced contacts found',
+          description: found > 0
+            ? `${found} found · ${json.deleted_from_instantly} removed from Instantly · ${fromDB} removed from Supabase`
+            : json.message ?? 'Nothing to delete',
+        });
+      }
     } catch (err) {
       toast({
         title: 'Delete failed',
