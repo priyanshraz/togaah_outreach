@@ -1,9 +1,10 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import {
   Mail, Users, Eye, MessageSquare, XCircle,
-  CheckCircle, RefreshCw, AlertCircle, Activity, TrendingUp, MousePointer,
+  CheckCircle, RefreshCw, AlertCircle, Activity, TrendingUp, MousePointer, Trash2, Loader2,
 } from 'lucide-react';
 import { Header } from '@/components/dashboard/header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +13,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/use-toast';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -91,6 +96,49 @@ function StatCard({
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OutreachAnalyticsPage() {
+  const { toast } = useToast();
+  const [loadingId, setLoadingId]   = useState<string | null>(null); // fetching count
+  const [deletingId, setDeletingId] = useState<string | null>(null); // deleting
+  const [dialog, setDialog] = useState<{ campaign_id: string; campaign_name: string; count: number } | null>(null);
+
+  // Step 1 — fetch bounced count then show confirmation dialog
+  async function openDeleteDialog(campaign_id: string, campaign_name: string) {
+    setLoadingId(campaign_id);
+    try {
+      const res = await fetch(`/api/instantly/delete-bounced?campaign_id=${campaign_id}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Failed to fetch count');
+      setDialog({ campaign_id, campaign_name, count: json.bounced_count ?? 0 });
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Failed', variant: 'destructive' });
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  // Step 2 — confirm: delete all bounced leads in one API call
+  async function confirmDelete() {
+    if (!dialog) return;
+    const { campaign_id, count } = dialog;
+    setDialog(null);
+    setDeletingId(campaign_id);
+    try {
+      const res = await fetch('/api/instantly/delete-bounced', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaign_id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Delete failed');
+      toast({ title: '✅ Bounced leads deleted', description: `${json.deleted_count ?? count} bounced leads deleted successfully` });
+      refetch();
+    } catch (err) {
+      toast({ title: 'Delete failed', description: err instanceof Error ? err.message : 'Try again', variant: 'destructive' });
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   const { data, isLoading, error, refetch, isFetching } = useQuery<AnalyticsResponse>({
     queryKey: ['instantly-analytics'],
     queryFn: async () => {
@@ -202,6 +250,7 @@ export default function OutreachAnalyticsPage() {
                       <TableHead><span className="flex items-center gap-1 text-blue-500"><MousePointer className="h-3 w-3"/>Clicks</span></TableHead>
                       <TableHead><span className="flex items-center gap-1 text-red-500"><XCircle className="h-3 w-3"/>Bounced</span></TableHead>
                       <TableHead><span className="flex items-center gap-1 text-teal-600"><CheckCircle className="h-3 w-3"/>Done</span></TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -237,6 +286,25 @@ export default function OutreachAnalyticsPage() {
                         <TableCell className="text-blue-500">{c.link_click_count.toLocaleString()}</TableCell>
                         <TableCell className="text-red-500 font-medium">{c.bounced_count.toLocaleString()}</TableCell>
                         <TableCell className="text-teal-600">{c.completed_count.toLocaleString()}</TableCell>
+                        <TableCell>
+                          {c.bounced_count > 0 ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={loadingId === c.campaign_id || deletingId === c.campaign_id}
+                              onClick={() => openDeleteDialog(c.campaign_id, c.campaign_name)}
+                              className="text-red-500 border-red-200 hover:bg-red-50 gap-1.5 whitespace-nowrap text-xs h-7 px-2"
+                            >
+                              {loadingId === c.campaign_id || deletingId === c.campaign_id
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : <Trash2 className="h-3 w-3" />
+                              }
+                              Delete Bounced
+                            </Button>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -255,6 +323,40 @@ export default function OutreachAnalyticsPage() {
           </div>
         )}
       </div>
+
+      {/* ── Confirmation Dialog ────────────────────────────────────────── */}
+      <Dialog open={!!dialog} onOpenChange={(open) => { if (!open) setDialog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-red-500" />
+              Delete Bounced Leads
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2 space-y-3">
+            <p className="text-sm text-gray-700">
+              Are you sure you want to delete{' '}
+              <span className="font-bold text-red-600">{dialog?.count ?? 0} bounced leads</span>{' '}
+              from campaign <span className="font-semibold">&ldquo;{dialog?.campaign_name}&rdquo;</span>?
+            </p>
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-2.5">
+              <p className="text-xs text-red-700 font-medium">⚠️ This action cannot be undone.</p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDialog(null)}>Cancel</Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white"
+              onClick={confirmDelete}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Confirm Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -2,10 +2,8 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
-import { prisma } from '@/lib/prisma';
 
 const BASE = 'https://api.instantly.ai/api/v2';
-const TABLES = ['table1', 'table2', 'table3', 'table4', 'table5', 'table6'];
 
 function hdrs() {
   return {
@@ -14,65 +12,64 @@ function hdrs() {
   };
 }
 
-interface Lead { id: string; email: string; }
+// GET bounced lead count for a campaign (paginated)
+// POST /api/v2/leads/list  { campaign_id, status: -1, limit: 100 }
+async function getBouncedCount(campaign_id: string): Promise<number> {
+  let count = 0;
+  let starting_after: string | undefined;
 
-// ── Fetch bounced leads (this works with read-only key) ────────────────────
-async function getBounced(campaign_id: string): Promise<Lead[]> {
-  const leads: Lead[] = [];
-  let skip = 0;
   while (true) {
+    const body: Record<string, unknown> = { campaign_id, status: -1, limit: 100 };
+    if (starting_after) body.starting_after = starting_after;
+
     const res = await fetch(`${BASE}/leads/list`, {
-      method: 'POST', headers: hdrs(),
-      body: JSON.stringify({ campaign_id, filter_list_status: [3], limit: 100, skip }),
+      method: 'POST',
+      headers: hdrs(),
+      body: JSON.stringify(body),
     });
-    if (!res.ok) break;
-    const raw = await res.json();
-    const items: Record<string, unknown>[] = Array.isArray(raw) ? raw
-      : Array.isArray(raw?.items) ? raw.items
-      : Array.isArray(raw?.data) ? raw.data : [];
-    items.forEach((l) => {
-      const email = String(l.email ?? '').toLowerCase().trim();
-      const id    = String(l.id ?? l.lead_id ?? l._id ?? '');
-      if (email) leads.push({ id, email });
-    });
-    if (items.length < 100) break;
-    skip += 100;
+
+    if (!res.ok) {
+      const err = await res.text().catch(() => '');
+      console.error(`[delete-bounced] list ${res.status}:`, err.slice(0, 200));
+      break;
+    }
+
+    const data = await res.json();
+    const items: unknown[] = data?.items ?? [];
+    count += items.length;
+
+    if (data?.next_starting_after) {
+      starting_after = data.next_starting_after;
+    } else {
+      break;
+    }
   }
-  return leads;
+
+  return count;
 }
 
-// ── Mark bounced leads as unsubscribed in Instantly ───────────────────────
-// REQUIRES write-enabled API key. Returns { done, needsWriteKey }
-async function markUnsubscribedInstantly(leads: Lead[]): Promise<{ done: number; needsWriteKey: boolean }> {
-  if (leads.length === 0) return { done: 0, needsWriteKey: false };
+// ── GET /api/instantly/delete-bounced?campaign_id=xxx
+// Returns the bounced lead count for confirmation dialog
+export async function GET(req: NextRequest) {
+  try {
+    const user = await getAuthUser();
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Test with first lead — if 401, API key is read-only
-  const test = await fetch(`${BASE}/lead/${leads[0].id}`, {
-    method: 'PATCH', headers: hdrs(),
-    body: JSON.stringify({ list_status: 4 }),
-  });
+    const campaign_id = req.nextUrl.searchParams.get('campaign_id');
+    if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
 
-  if (test.status === 401) {
-    console.log('[bounced] API key is read-only — cannot modify leads in Instantly');
-    return { done: 0, needsWriteKey: true };
+    const count = await getBouncedCount(campaign_id);
+    return NextResponse.json({ success: true, bounced_count: count });
+
+  } catch (error) {
+    console.error('[delete-bounced] GET error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-
-  let done = test.ok ? 1 : 0;
-
-  // Process remaining leads
-  for (const lead of leads.slice(1)) {
-    const r = await fetch(`${BASE}/lead/${lead.id}`, {
-      method: 'PATCH', headers: hdrs(),
-      body: JSON.stringify({ list_status: 4 }),
-    });
-    if (r.ok) done++;
-    else console.log(`[bounced] PATCH ${r.status} id=${lead.id}`);
-  }
-
-  return { done, needsWriteKey: false };
 }
 
-// ── POST /api/instantly/delete-bounced ────────────────────────────────────
+// ── POST /api/instantly/delete-bounced
+// Body: { campaign_id }
+// Deletes ALL bounced leads (status -1) from the campaign in one API call
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -81,45 +78,34 @@ export async function POST(req: NextRequest) {
     const { campaign_id } = await req.json();
     if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
 
-    // Step 1: Get bounced leads (works with read-only key)
-    const bouncedLeads = await getBounced(campaign_id);
-    const emails = bouncedLeads.map((l) => l.email);
-    console.log(`[bounced] found ${bouncedLeads.length} bounced leads`);
+    // DELETE /api/v2/leads — deletes ALL leads with status -1 in one call
+    const res = await fetch(`${BASE}/leads`, {
+      method: 'DELETE',
+      headers: hdrs(),
+      body: JSON.stringify({ campaign_id, status: -1 }),
+    });
 
-    if (bouncedLeads.length === 0) {
-      return NextResponse.json({ success: true, bounced_emails_found: 0, deleted_from_instantly: 0, deleted_from_supabase: 0, message: 'No bounced leads found' });
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      console.error('[delete-bounced] DELETE error:', res.status, JSON.stringify(data));
+      return NextResponse.json(
+        { error: data?.error ?? `Instantly API error ${res.status}` },
+        { status: res.status >= 500 ? 502 : 400 }
+      );
     }
 
-    // Step 2: Try to mark as unsubscribed in Instantly (needs write key)
-    const { done: markedInstantly, needsWriteKey } = await markUnsubscribedInstantly(bouncedLeads);
-
-    // Step 3: Delete from Supabase (works independently of Instantly key)
-    let deletedSupabase = 0;
-    for (const table of TABLES) {
-      try {
-        const n = await prisma.$executeRawUnsafe(
-          `DELETE FROM public."${table}" WHERE LOWER(TRIM(CAST(email AS TEXT))) = ANY($1::text[])`,
-          emails
-        );
-        if (n > 0) { console.log(`[bounced] supabase ${table}: ${n}`); deletedSupabase += n; }
-      } catch (e) { console.error(`[bounced] ${table}:`, String(e).slice(0, 150)); }
-    }
-
-    const instantlyMsg = needsWriteKey
-      ? `⚠️ Instantly: API key needs write permission (update INSTANTLY_API_KEY in Vercel)`
-      : `Instantly: ${markedInstantly} marked as Do Not Contact`;
+    const deleted_count = data?.deleted_count ?? 0;
+    console.log(`[delete-bounced] campaign=${campaign_id} deleted=${deleted_count}`);
 
     return NextResponse.json({
       success: true,
-      bounced_emails_found: bouncedLeads.length,
-      deleted_from_instantly: markedInstantly,
-      deleted_from_supabase: deletedSupabase,
-      needs_write_key: needsWriteKey,
-      message: `${bouncedLeads.length} bounced found · ${instantlyMsg} · Supabase: ${deletedSupabase} deleted`,
+      deleted_count,
+      message: `${deleted_count} bounced leads deleted successfully`,
     });
 
   } catch (error) {
-    console.error('[bounced] fatal:', error);
+    console.error('[delete-bounced] POST error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
