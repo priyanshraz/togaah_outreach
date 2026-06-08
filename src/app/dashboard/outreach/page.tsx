@@ -130,7 +130,12 @@ export default function OutreachAnalyticsPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Delete failed');
-      toast({ title: '✅ Bounced leads deleted', description: `${json.deleted_count ?? count} bounced leads deleted successfully` });
+      const instDel = json.deleted_count ?? count;
+      const dbDel   = json.supabase_deleted ?? 0;
+      toast({
+        title: '✅ Bounced leads deleted',
+        description: `${instDel} removed from Instantly.ai · ${dbDel} removed from Supabase`,
+      });
       refetch();
     } catch (err) {
       toast({ title: 'Delete failed', description: err instanceof Error ? err.message : 'Try again', variant: 'destructive' });

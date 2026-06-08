@@ -2,8 +2,10 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/getAuthUser';
+import { prisma } from '@/lib/prisma';
 
 const BASE = 'https://api.instantly.ai/api/v2';
+const TABLES = ['table1', 'table2', 'table3', 'table4', 'table5', 'table6'];
 
 function hdrs() {
   return {
@@ -12,10 +14,11 @@ function hdrs() {
   };
 }
 
-// GET bounced lead count for a campaign (paginated)
-// POST /api/v2/leads/list  { campaign_id, status: -1, limit: 100 }
-async function getBouncedCount(campaign_id: string): Promise<number> {
-  let count = 0;
+interface LeadItem { email?: string; [k: string]: unknown; }
+
+// Fetch all bounced leads (paginated) — returns { count, emails }
+async function fetchBounced(campaign_id: string): Promise<{ count: number; emails: string[] }> {
+  const emails: string[] = [];
   let starting_after: string | undefined;
 
   while (true) {
@@ -29,14 +32,15 @@ async function getBouncedCount(campaign_id: string): Promise<number> {
     });
 
     if (!res.ok) {
-      const err = await res.text().catch(() => '');
-      console.error(`[delete-bounced] list ${res.status}:`, err.slice(0, 200));
+      console.error(`[delete-bounced] list ${res.status}:`, await res.text().catch(() => ''));
       break;
     }
 
     const data = await res.json();
-    const items: unknown[] = data?.items ?? [];
-    count += items.length;
+    const items: LeadItem[] = data?.items ?? [];
+    items.forEach((l) => {
+      if (l?.email) emails.push(l.email.toLowerCase().trim());
+    });
 
     if (data?.next_starting_after) {
       starting_after = data.next_starting_after;
@@ -45,11 +49,10 @@ async function getBouncedCount(campaign_id: string): Promise<number> {
     }
   }
 
-  return count;
+  return { count: emails.length, emails };
 }
 
-// ── GET /api/instantly/delete-bounced?campaign_id=xxx
-// Returns the bounced lead count for confirmation dialog
+// ── GET ?campaign_id=xxx — fetch bounced count for confirmation dialog
 export async function GET(req: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -58,7 +61,7 @@ export async function GET(req: NextRequest) {
     const campaign_id = req.nextUrl.searchParams.get('campaign_id');
     if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
 
-    const count = await getBouncedCount(campaign_id);
+    const { count } = await fetchBounced(campaign_id);
     return NextResponse.json({ success: true, bounced_count: count });
 
   } catch (error) {
@@ -67,9 +70,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// ── POST /api/instantly/delete-bounced
-// Body: { campaign_id }
-// Deletes ALL bounced leads (status -1) from the campaign in one API call
+// ── POST { campaign_id }
+// 1. Fetch bounced emails from Instantly (for Supabase deletion)
+// 2. Delete all bounced from Instantly in one call: DELETE /leads { campaign_id, status: -1 }
+// 3. Delete matching emails from all Supabase tables
 export async function POST(req: NextRequest) {
   try {
     const user = await getAuthUser();
@@ -78,30 +82,50 @@ export async function POST(req: NextRequest) {
     const { campaign_id } = await req.json();
     if (!campaign_id) return NextResponse.json({ error: 'campaign_id required' }, { status: 400 });
 
-    // DELETE /api/v2/leads — deletes ALL leads with status -1 in one call
-    const res = await fetch(`${BASE}/leads`, {
+    // Step 1 — get bounced email list (needed for Supabase)
+    const { count: bounced_count, emails } = await fetchBounced(campaign_id);
+    console.log(`[delete-bounced] found ${bounced_count} bounced emails`);
+
+    // Step 2 — delete all bounced from Instantly in one call
+    let instantly_deleted = 0;
+    const instRes = await fetch(`${BASE}/leads`, {
       method: 'DELETE',
       headers: hdrs(),
       body: JSON.stringify({ campaign_id, status: -1 }),
     });
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      console.error('[delete-bounced] DELETE error:', res.status, JSON.stringify(data));
-      return NextResponse.json(
-        { error: data?.error ?? `Instantly API error ${res.status}` },
-        { status: res.status >= 500 ? 502 : 400 }
-      );
+    const instData = await instRes.json().catch(() => ({}));
+    if (!instRes.ok) {
+      console.error('[delete-bounced] Instantly DELETE error:', instRes.status, instData);
+    } else {
+      instantly_deleted = instData?.deleted_count ?? bounced_count;
+      console.log(`[delete-bounced] Instantly deleted: ${instantly_deleted}`);
     }
 
-    const deleted_count = data?.deleted_count ?? 0;
-    console.log(`[delete-bounced] campaign=${campaign_id} deleted=${deleted_count}`);
+    // Step 3 — delete same emails from all Supabase tables
+    let supabase_deleted = 0;
+    if (emails.length > 0) {
+      for (const table of TABLES) {
+        try {
+          const n = await prisma.$executeRawUnsafe(
+            `DELETE FROM public."${table}" WHERE LOWER(TRIM(CAST(email AS TEXT))) = ANY($1::text[])`,
+            emails
+          );
+          if (n > 0) {
+            console.log(`[delete-bounced] ${table}: ${n} deleted`);
+            supabase_deleted += n;
+          }
+        } catch (e) {
+          console.error(`[delete-bounced] ${table}:`, String(e).slice(0, 150));
+        }
+      }
+      console.log(`[delete-bounced] Supabase total deleted: ${supabase_deleted}`);
+    }
 
     return NextResponse.json({
       success: true,
-      deleted_count,
-      message: `${deleted_count} bounced leads deleted successfully`,
+      deleted_count: instantly_deleted,
+      supabase_deleted,
+      message: `${instantly_deleted} bounced leads deleted from Instantly · ${supabase_deleted} removed from Supabase`,
     });
 
   } catch (error) {
