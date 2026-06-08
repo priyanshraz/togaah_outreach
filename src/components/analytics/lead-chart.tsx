@@ -34,16 +34,38 @@ const renderActiveShape = (props: any) => {
   );
 };
 
+// Normalize old human-readable sheet names → table1-table6
+const SHEET_MAP: Record<string, string> = {
+  'All Services Leads': 'table1', 'All Services': 'table1', 'all_service_leads': 'table1',
+  'Hair Transplant Leads': 'table2', 'Hair Transplant': 'table2', 'hair_transplant_leads': 'table2',
+  'Dental Treatment Leads': 'table3', 'Dental Treatment': 'table3', 'dental_treatment_leads': 'table3',
+  'Cosmetic Surgery Leads': 'table4', 'Cosmetic Surgery': 'table4', 'cosmic_surgery_leads': 'table4',
+  'Eye Treatment Leads': 'table5', 'Eye Treatment': 'table5', 'eye_treatment_leads': 'table5',
+  'IVF Fertility Leads': 'table6', 'IVF Fertility': 'table6', 'ivf_fertility_leads': 'table6',
+};
+
+function normalizeSheet(name: string): string {
+  return SHEET_MAP[name] ?? name;
+}
+
 export function LeadChart({ data }: LeadChartProps) {
-  const total = data.reduce((s, d) => s + d.count, 0);
+  // Merge rows with same normalized name (old + new entries for same table)
+  const normalized = data.reduce<{ sheet: string; count: number }[]>((acc, d) => {
+    const sheet = normalizeSheet(d.sheet);
+    const existing = acc.find((x) => x.sheet === sheet);
+    if (existing) { existing.count += d.count; } else { acc.push({ sheet, count: d.count }); }
+    return acc;
+  }, []);
+
+  const total = normalized.reduce((s, d) => s + d.count, 0);
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined);
-  const active = activeIndex !== undefined ? data[activeIndex] : null;
+  const active = activeIndex !== undefined ? normalized[activeIndex] : null;
   const activePct = active && total > 0 ? Math.round((active.count / total) * 100) : 0;
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Leads by Sheet</CardTitle>
+        <CardTitle className="text-base">Leads by Table</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="relative">
@@ -53,7 +75,7 @@ export function LeadChart({ data }: LeadChartProps) {
               onClick={() => {/* prevent focus */ }}
             >
               <Pie
-                data={data}
+                data={normalized}
                 dataKey="count"
                 nameKey="sheet"
                 cx="50%"
@@ -71,16 +93,16 @@ export function LeadChart({ data }: LeadChartProps) {
                 onTouchStart={(_, index) => setActiveIndex(index)}
                 onTouchEnd={() => setActiveIndex(undefined)}
               >
-                {data.map((_, i) => (
+                {normalized.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} stroke="none" strokeWidth={0} />
                 ))}
               </Pie>
               <Legend
                 wrapperStyle={{ paddingTop: 8, fontSize: 12 }}
                 formatter={(value: string) => {
-                  const item = data.find((d) => d.sheet === value);
+                  const item = normalized.find((d) => d.sheet === value);
                   const pct = total > 0 && item ? Math.round((item.count / total) * 100) : 0;
-                  return `${value.replace(' Leads', '')} (${pct}%)`;
+                  return `${value} (${pct}%)`;
                 }}
               />
             </PieChart>

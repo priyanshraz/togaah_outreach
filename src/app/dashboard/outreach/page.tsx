@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import {
   Mail, Users, Eye, MessageSquare, XCircle,
@@ -97,6 +97,7 @@ function StatCard({
 
 export default function OutreachAnalyticsPage() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [loadingId, setLoadingId]   = useState<string | null>(null); // fetching count
   const [deletingId, setDeletingId] = useState<string | null>(null); // deleting
   const [dialog, setDialog] = useState<{ campaign_id: string; campaign_name: string; count: number } | null>(null);
@@ -136,7 +137,20 @@ export default function OutreachAnalyticsPage() {
         title: '✅ Bounced leads deleted',
         description: `${instDel} removed from Instantly.ai · ${dbDel} removed from Supabase`,
       });
-      refetch();
+      // Optimistically set bounced_count = 0 for this campaign immediately
+      // (Instantly analytics API caches — real refetch may lag)
+      queryClient.setQueryData<AnalyticsResponse>(['instantly-analytics'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          campaigns: old.campaigns.map((c) =>
+            c.campaign_id === campaign_id ? { ...c, bounced_count: 0 } : c
+          ),
+          totals: { ...old.totals, total_bounced: Math.max(0, (old.totals?.total_bounced ?? 0) - (instDel)) },
+        };
+      });
+      // Also trigger real refetch after short delay
+      setTimeout(() => refetch(), 3000);
     } catch (err) {
       toast({ title: 'Delete failed', description: err instanceof Error ? err.message : 'Try again', variant: 'destructive' });
     } finally {
